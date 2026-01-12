@@ -3,6 +3,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../widgets/connection_status_widget.dart';
 import '../../widgets/current_reading_card.dart';
+import '../../widgets/live_trend_chart.dart';
 
 /// Home screen displaying live blood pressure monitoring data
 /// Follows SRP - Only responsible for displaying the home view
@@ -33,15 +34,10 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Placeholder for live trend chart (Commit 3)
-              Container(
+              // Live Trend Chart
+              const SizedBox(
                 height: 300, // Fixed height for chart
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(child: Text('Live Trend Chart')),
+                child: LiveTrendChart(),
               ),
 
               const SizedBox(height: 16),
