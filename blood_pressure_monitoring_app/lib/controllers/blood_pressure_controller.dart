@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/blood_pressure_reading.dart';
 import '../repositories/blood_pressure_repository.dart';
@@ -12,6 +13,8 @@ class BloodPressureController extends ChangeNotifier {
   List<BloodPressureReading> _historicalReadings = [];
   bool _isLoading = false;
   String? _error;
+  bool _isPaused = false;
+  StreamSubscription<BloodPressureReading>? _realtimeSubscription;
 
   BloodPressureController(this._repository, {bool enableRealtime = true}) {
     _initialize(enableRealtime);
@@ -23,6 +26,7 @@ class BloodPressureController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasData => _currentReading != null;
+  bool get isPaused => _isPaused;
 
   /// Initialize controller and load data
   Future<void> _initialize(bool enableRealtime) async {
@@ -70,25 +74,46 @@ class BloodPressureController extends ChangeNotifier {
 
   /// Start listening to real-time updates
   void _startRealtimeUpdates() {
-    _repository.watchReadings().listen(
+    _realtimeSubscription = _repository.watchReadings().listen(
       (reading) {
-        _currentReading = reading;
+        // Only update if not paused
+        if (!_isPaused) {
+          _currentReading = reading;
 
-        // Add to historical readings
-        _historicalReadings.add(reading);
+          // Add to historical readings
+          _historicalReadings.add(reading);
 
-        // Keep only last 30 readings
-        if (_historicalReadings.length > 30) {
-          _historicalReadings.removeAt(0);
+          // Keep only last 30 readings
+          if (_historicalReadings.length > 30) {
+            _historicalReadings.removeAt(0);
+          }
+
+          notifyListeners();
         }
-
-        notifyListeners();
       },
       onError: (error) {
         _error = 'Real-time update error: $error';
         notifyListeners();
       },
     );
+  }
+
+  /// Pause real-time data updates
+  void pauseMonitoring() {
+    _isPaused = true;
+    notifyListeners();
+  }
+
+  /// Resume real-time data updates
+  void resumeMonitoring() {
+    _isPaused = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
   }
 
   /// Refresh all data
