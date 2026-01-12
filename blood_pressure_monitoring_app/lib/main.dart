@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'views/main_navigation.dart';
+import 'controllers/blood_pressure_controller.dart';
+import 'controllers/device_controller.dart';
+import 'repositories/blood_pressure_repository.dart';
+import 'repositories/device_repository.dart';
 
 void main() {
   // Set preferred orientations and system UI
@@ -11,7 +16,7 @@ void main() {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   runApp(const BloodPressureMonitorApp());
 }
 
@@ -22,11 +27,27 @@ class BloodPressureMonitorApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BP Monitor',
-      debugShowCheckedModeBanner: false,
-      theme: _buildAppTheme(),
-      home: const MainNavigation(),
+    // Initialize repositories (can be easily swapped with Firebase/API)
+    final bpRepository = MockBloodPressureRepository();
+    final deviceRepository = MockDeviceRepository();
+
+    return MultiProvider(
+      providers: [
+        // Blood Pressure Controller
+        ChangeNotifierProvider(
+          create: (_) => BloodPressureController(bpRepository),
+        ),
+        // Device Controller
+        ChangeNotifierProvider(
+          create: (_) => DeviceController(deviceRepository),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'BP Monitor',
+        debugShowCheckedModeBanner: false,
+        theme: _buildAppTheme(),
+        home: const MainNavigation(),
+      ),
     );
   }
 
@@ -41,10 +62,10 @@ class BloodPressureMonitorApp extends StatelessWidget {
         secondary: AppColors.primaryDark,
         surface: AppColors.background,
       ),
-      
+
       // Scaffold background
       scaffoldBackgroundColor: AppColors.background,
-      
+
       // AppBar theme
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
@@ -57,7 +78,7 @@ class BloodPressureMonitorApp extends StatelessWidget {
           color: Colors.white,
         ),
       ),
-      
+
       // Text theme - Large fonts for elderly users
       textTheme: const TextTheme(
         displayLarge: AppTextStyles.heading1,
@@ -68,64 +89,50 @@ class BloodPressureMonitorApp extends StatelessWidget {
         bodySmall: AppTextStyles.bodySmall,
         labelLarge: AppTextStyles.button,
       ),
-      
+
       // Card theme
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      
+
       // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonPrimary,
           foregroundColor: Colors.white,
           textStyle: AppTextStyles.button,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 32,
-            vertical: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 2,
         ),
       ),
-      
+
       // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.buttonSecondary,
           textStyle: AppTextStyles.button,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 32,
-            vertical: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          side: const BorderSide(
-            color: AppColors.buttonSecondary,
-            width: 2,
-          ),
+          side: const BorderSide(color: AppColors.buttonSecondary, width: 2),
         ),
       ),
-      
+
       // Icon theme - Larger icons for visibility
-      iconTheme: const IconThemeData(
-        size: 28,
-        color: AppColors.textPrimary,
-      ),
-      
+      iconTheme: const IconThemeData(size: 28, color: AppColors.textPrimary),
+
       // Divider theme
       dividerTheme: const DividerThemeData(
         color: AppColors.divider,
         thickness: 1,
       ),
-      
+
       // Use Material 3
       useMaterial3: true,
     );
