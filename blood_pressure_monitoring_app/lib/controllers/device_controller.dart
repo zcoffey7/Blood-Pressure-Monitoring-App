@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/device_connection.dart';
 import '../repositories/device_repository.dart';
@@ -12,6 +13,7 @@ class DeviceController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSyncing = false;
   String? _error;
+  StreamSubscription<DeviceConnection>? _connectionSubscription;
 
   DeviceController(this._repository, {bool enableMonitoring = true}) {
     _initialize(enableMonitoring);
@@ -122,7 +124,7 @@ class DeviceController extends ChangeNotifier {
 
   /// Start monitoring connection status changes
   void _startConnectionMonitoring() {
-    _repository.watchConnectionStatus().listen(
+    _connectionSubscription = _repository.watchConnectionStatus().listen(
       (connection) {
         _connection = connection;
         notifyListeners();
@@ -137,5 +139,11 @@ class DeviceController extends ChangeNotifier {
   /// Refresh connection status
   Future<void> refresh() async {
     await loadConnectionStatus();
+  }
+
+  @override
+  void dispose() {
+    _connectionSubscription?.cancel();
+    super.dispose();
   }
 }

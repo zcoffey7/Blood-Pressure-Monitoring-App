@@ -7,8 +7,16 @@ import '../controllers/device_controller.dart';
 
 /// Widget displaying action buttons for monitoring control
 /// Follows SRP - Only responsible for displaying action buttons
-class ActionButtons extends StatelessWidget {
+class ActionButtons extends StatefulWidget {
   const ActionButtons({super.key});
+
+  @override
+  State<ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _ActionButtonsState extends State<ActionButtons> {
+  static const int _maxRetryAttempts = 3;
+  int _syncRetryCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -141,12 +149,18 @@ class ActionButtons extends StatelessWidget {
     final deviceController = context.read<DeviceController>();
     final bpController = context.read<BloodPressureController>();
 
+    // Increment retry count
+    _syncRetryCount++;
+
     // Attempt to sync with device
     final success = await deviceController.syncDevice();
 
     if (!context.mounted) return;
 
     if (success) {
+      // Reset retry count on success
+      _syncRetryCount = 0;
+
       // Refresh blood pressure data after successful sync
       await bpController.refresh();
 
@@ -173,16 +187,23 @@ class ActionButtons extends StatelessWidget {
         ),
       );
     } else {
-      // Show error message
+      // Check if we've exceeded retry limit
+      final canRetry = _syncRetryCount < _maxRetryAttempts;
+
+      // Show error message with retry button (if attempts remain)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               const Icon(Icons.error, color: Colors.white),
               const SizedBox(width: 12),
-              Text(
-                'Failed to sync device',
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+              Expanded(
+                child: Text(
+                  canRetry
+                      ? 'Failed to sync device (Attempt $_syncRetryCount/$_maxRetryAttempts)'
+                      : 'Failed to sync device. Please try again later.',
+                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -191,13 +212,27 @@ class ActionButtons extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
-          action: SnackBarAction(
-            label: 'RETRY',
-            textColor: Colors.white,
-            onPressed: () => _handleSync(context),
-          ),
+          action: canRetry
+              ? SnackBarAction(
+                  label: 'RETRY',
+                  textColor: Colors.white,
+                  onPressed: () => _handleSync(context),
+                )
+              : null,
         ),
       );
+
+      // Reset retry count after max attempts reached
+      if (!canRetry) {
+        // Wait a bit before resetting to prevent immediate retries
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() {
+              _syncRetryCount = 0;
+            });
+          }
+        });
+      }
     }
   }
 }
