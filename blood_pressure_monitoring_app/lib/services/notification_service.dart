@@ -22,7 +22,9 @@ class NotificationService {
     tz.initializeTimeZones();
 
     // Android initialization settings
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
     // iOS initialization settings
     const iosSettings = DarwinInitializationSettings(
@@ -53,18 +55,17 @@ class NotificationService {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final result = await _notifications
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
       return result ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      final androidImplementation =
-          _notifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      final granted = await androidImplementation?.requestNotificationsPermission();
+      final androidImplementation = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      final granted = await androidImplementation
+          ?.requestNotificationsPermission();
       return granted ?? false;
     }
     return true; // Other platforms
@@ -129,7 +130,8 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at same time
+      matchDateTimeComponents:
+          DateTimeComponents.time, // Repeat daily at same time
       payload: 'questionnaire', // Payload to identify notification type
     );
 
@@ -153,47 +155,19 @@ class NotificationService {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       final result = await _notifications
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.checkPermissions();
       return result?.isEnabled ?? false;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      final androidImplementation =
-          _notifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidImplementation = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final granted = await androidImplementation?.areNotificationsEnabled();
       return granted ?? false;
     }
     return true;
-  }
-
-  /// Show an immediate test notification (for debugging)
-  Future<void> showTestNotification() async {
-    const androidDetails = AndroidNotificationDetails(
-      'test',
-      'Test Notifications',
-      channelDescription: 'Test notification channel',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-
-    const notificationDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    await _notifications.show(
-      999,
-      'Test Notification',
-      'This is a test notification',
-      notificationDetails,
-      payload: 'test',
-    );
   }
 
   /// Get pending notifications
@@ -201,4 +175,3 @@ class NotificationService {
     return await _notifications.pendingNotificationRequests();
   }
 }
-
