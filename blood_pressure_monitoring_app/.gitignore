@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase Admin SDK and Secrets (DO NOT COMMIT THESE)
+# Note: google-services.json and GoogleService-Info.plist are CLIENT-SIDE
+# configs and SHOULD be committed. Only exclude SERVICE ACCOUNT keys.
+**/serviceAccountKey.json
+**/service-account-*.json
+admin-sdk-*.json
+
+# Environment files with secrets
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Secrets directory
+secrets/
+*.secret
