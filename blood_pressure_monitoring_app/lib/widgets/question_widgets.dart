@@ -44,35 +44,6 @@ class ScaleQuestionWidget extends StatelessWidget {
             },
           ),
         ),
-
-        const SizedBox(height: 16),
-
-        // Labels
-        if (question.minLabel != null || question.maxLabel != null)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (question.minLabel != null)
-                Flexible(
-                  child: Text(
-                    question.minLabel!,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              if (question.maxLabel != null)
-                Flexible(
-                  child: Text(
-                    question.maxLabel!,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-            ],
-          ),
       ],
     );
   }

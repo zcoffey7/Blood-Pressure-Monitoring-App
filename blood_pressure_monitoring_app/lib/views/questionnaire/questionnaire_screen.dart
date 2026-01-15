@@ -49,20 +49,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Health Questionnaire'),
+        title: const Text('Health Check-In'),
         leading: IconButton(
           icon: const Icon(Icons.close, size: 28),
           onPressed: _handleBack,
         ),
-        actions: [
-          TextButton(
-            onPressed: _saveDraft,
-            child: Text(
-              'Save Draft',
-              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-            ),
-          ),
-        ],
       ),
       body: Consumer<QuestionnaireController>(
         builder: (context, controller, child) {
@@ -251,8 +242,6 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(question.text, style: AppTextStyles.bodyLarge),
-            const SizedBox(height: 16),
             MultipleChoiceQuestionWidget(
               question: question,
               currentValue: currentValue as String?,
@@ -422,32 +411,13 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     }
   }
 
-  Future<void> _saveDraft() async {
-    final controller = context.read<QuestionnaireController>();
-    await controller.saveProgress();
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Progress saved',
-            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.info,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
-  }
-
   void _handleBack() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Exit Questionnaire?'),
+        title: const Text('Exit Check-In?'),
         content: const Text(
-          'Your progress will be saved as a draft. You can continue later.',
+          'Your progress will not be saved. Are you sure you want to exit?',
         ),
         actions: [
           TextButton(
@@ -456,11 +426,10 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              _saveDraft();
               Navigator.of(context).pop(); // Close dialog
               Navigator.of(context).pop(); // Close questionnaire
             },
-            child: const Text('Save & Exit'),
+            child: const Text('Exit'),
           ),
         ],
       ),

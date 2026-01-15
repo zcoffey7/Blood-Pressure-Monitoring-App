@@ -60,18 +60,10 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
       description: 'Complete assessment for monitoring orthostatic hypotension',
       createdAt: DateTime.now(),
       questions: [
-        // Today's date (auto-filled)
+        // Today's date and time
         const Question(
           id: 'assessment_date',
-          text: "Today's Date",
-          type: QuestionType.dateTime,
-          required: true,
-        ),
-
-        // Current time (auto-filled)
-        const Question(
-          id: 'current_time',
-          text: 'Current Time',
+          text: "Today's Date and Time",
           type: QuestionType.dateTime,
           required: true,
         ),
@@ -104,13 +96,11 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
         const Question(
           id: 'sleep_quality',
           text:
-              'Sleep quality: Assign a number on the scale that best rates the quality of your sleep last night.',
+              'Sleep quality: Assign a number on the scale that best rates the quality of your sleep last night (0 = Best possible sleep, 10 = Worst possible sleep).',
           type: QuestionType.scale,
           required: true,
           minValue: 0,
           maxValue: 10,
-          minLabel: 'Best possible sleep',
-          maxLabel: 'Worst possible sleep',
         ),
 
         // Fatigue level before test (1-7 rating with labels)
@@ -166,25 +156,11 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
         const Question(
           id: 'postural_symptoms',
           text:
-              'Postural symptoms: Assign a number on the scale that best rates how severe the following symptoms were that occurred when upright (standing and/or sitting): Dizziness/lightheadedness, feeling faint or like you might blackout, vision problems (blurry, tunnel vision, diminished vision, seeing spots, etc.), weakness, fatigue, trouble concentrating, pain or discomfort in shoulders/back of neck, nausea.',
+              'Postural symptoms: Assign a number on the scale that best rates how severe the following symptoms were that occurred when upright (standing and/or sitting): Dizziness/lightheadedness, feeling faint or like you might blackout, vision problems (blurry, tunnel vision, diminished vision, seeing spots, etc.), weakness, fatigue, trouble concentrating, pain or discomfort in shoulders/back of neck, nausea (0 = None, 10 = Worst possible).',
           type: QuestionType.scale,
           required: true,
           minValue: 0,
           maxValue: 10,
-          minLabel: 'None',
-          maxLabel: 'Worst possible',
-        ),
-
-        // Overall number (0-10 scale)
-        const Question(
-          id: 'overall_rating',
-          text: 'Give one overall number:',
-          type: QuestionType.scale,
-          required: true,
-          minValue: 0,
-          maxValue: 10,
-          minLabel: 'None',
-          maxLabel: 'Worst possible',
         ),
       ],
     );

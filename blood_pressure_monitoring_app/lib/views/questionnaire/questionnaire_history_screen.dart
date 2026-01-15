@@ -5,6 +5,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../controllers/questionnaire_controller.dart';
 import '../../models/questionnaire_response.dart';
+import 'questionnaire_screen.dart';
 
 /// Screen displaying history of completed questionnaires
 /// Follows SRP - Only responsible for displaying questionnaire history
@@ -34,7 +35,19 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Questionnaire History'),
+        title: const Text('Health Check-Ins'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _startNewQuestionnaire(context),
+        backgroundColor: AppColors.normal,
+        icon: const Icon(Icons.add, size: 28),
+        label: Text(
+          'New Check-In',
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: Consumer<QuestionnaireController>(
         builder: (context, controller, child) {
@@ -455,6 +468,22 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
         ),
       ),
     );
+  }
+
+  /// Start new questionnaire
+  Future<void> _startNewQuestionnaire(BuildContext context) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const QuestionnaireScreen(
+          templateId: 'orthostatic_assessment',
+        ),
+      ),
+    );
+
+    // If questionnaire was completed, refresh history
+    if (result == true && mounted) {
+      await _loadHistory();
+    }
   }
 }
 
