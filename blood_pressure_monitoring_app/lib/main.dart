@@ -4,20 +4,49 @@ import 'package:provider/provider.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'views/main_navigation.dart';
+import 'views/questionnaire/questionnaire_screen.dart';
 import 'controllers/blood_pressure_controller.dart';
 import 'controllers/device_controller.dart';
 import 'controllers/questionnaire_controller.dart';
 import 'repositories/blood_pressure_repository.dart';
 import 'repositories/device_repository.dart';
 import 'repositories/questionnaire_repository.dart';
+import 'services/notification_service.dart';
 
-void main() {
+// Global navigator key for handling notification navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
   // Set preferred orientations and system UI
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Initialize notification service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // Set up notification tap handler
+  notificationService.onNotificationTap = (payload) {
+    if (payload == 'questionnaire') {
+      // Navigate to questionnaire when notification is tapped
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => const QuestionnaireScreen(
+            templateId: 'orthostatic_assessment',
+          ),
+        ),
+      );
+    }
+  };
+
+  // Request permissions and schedule daily reminder
+  final permissionGranted = await notificationService.requestPermissions();
+  if (permissionGranted) {
+    await notificationService.scheduleDailyCheckInReminder();
+  }
 
   runApp(const BloodPressureMonitorApp());
 }
@@ -53,6 +82,7 @@ class BloodPressureMonitorApp extends StatelessWidget {
         title: 'BP Monitor',
         debugShowCheckedModeBanner: false,
         theme: _buildAppTheme(),
+        navigatorKey: navigatorKey,
         home: const MainNavigation(),
       ),
     );
