@@ -24,7 +24,7 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize notification service
+  // Initialize notification service (does not request permissions or schedule)
   final notificationService = NotificationService();
   await notificationService.initialize();
 
@@ -42,11 +42,8 @@ void main() async {
     }
   };
 
-  // Request permissions and schedule daily reminder
-  final permissionGranted = await notificationService.requestPermissions();
-  if (permissionGranted) {
-    await notificationService.scheduleDailyCheckInReminder();
-  }
+  // Note: Notifications will only be scheduled when user explicitly
+  // enables them through the Settings screen toggle
 
   runApp(const BloodPressureMonitorApp());
 }

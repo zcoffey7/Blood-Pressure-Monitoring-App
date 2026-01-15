@@ -333,7 +333,7 @@ class DateTimeQuestionWidget extends StatelessWidget {
 
 /// Widget for text input questions
 /// Follows SRP - Only handles text input UI
-class TextQuestionWidget extends StatelessWidget {
+class TextQuestionWidget extends StatefulWidget {
   final Question question;
   final String? currentValue;
   final Function(String) onChanged;
@@ -346,20 +346,48 @@ class TextQuestionWidget extends StatelessWidget {
   });
 
   @override
+  State<TextQuestionWidget> createState() => _TextQuestionWidgetState();
+}
+
+class _TextQuestionWidgetState extends State<TextQuestionWidget> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentValue);
+  }
+
+  @override
+  void didUpdateWidget(TextQuestionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update controller text if currentValue changed externally
+    if (oldWidget.currentValue != widget.currentValue) {
+      _controller.text = widget.currentValue ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(question.text, style: AppTextStyles.bodyLarge),
+        Text(widget.question.text, style: AppTextStyles.bodyLarge),
         const SizedBox(height: 16),
 
         TextField(
-          controller: TextEditingController(text: currentValue),
-          onChanged: onChanged,
+          controller: _controller,
+          onChanged: widget.onChanged,
           style: AppTextStyles.bodyLarge,
           maxLines: 3,
           decoration: InputDecoration(
-            hintText: question.placeholder ?? 'Enter your response...',
+            hintText: widget.question.placeholder ?? 'Enter your response...',
             hintStyle: AppTextStyles.bodyLarge.copyWith(
               color: AppColors.textHint,
             ),

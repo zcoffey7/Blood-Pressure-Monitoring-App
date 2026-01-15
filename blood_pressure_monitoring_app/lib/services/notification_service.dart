@@ -174,4 +174,10 @@ class NotificationService {
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     return await _notifications.pendingNotificationRequests();
   }
+
+  /// Check if daily check-in reminder is scheduled
+  Future<bool> isDailyReminderScheduled() async {
+    final pending = await getPendingNotifications();
+    return pending.any((notification) => notification.id == 0);
+  }
 }

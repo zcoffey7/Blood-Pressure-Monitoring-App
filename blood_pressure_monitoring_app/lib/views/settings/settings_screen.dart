@@ -24,9 +24,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkNotificationStatus() async {
-    final enabled = await _notificationService.areNotificationsEnabled();
+    // Check both permissions and if reminder is actually scheduled
+    final hasPermissions = await _notificationService.areNotificationsEnabled();
+    final isScheduled = await _notificationService.isDailyReminderScheduled();
+    
     setState(() {
-      _notificationsEnabled = enabled;
+      _notificationsEnabled = hasPermissions && isScheduled;
       _isLoading = false;
     });
   }
