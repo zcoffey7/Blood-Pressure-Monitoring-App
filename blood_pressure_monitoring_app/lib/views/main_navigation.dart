@@ -4,6 +4,7 @@ import '../constants/app_text_styles.dart';
 import 'home/home_screen.dart';
 import 'history/history_screen.dart';
 import 'alerts/alerts_screen.dart';
+import 'questionnaire/questionnaire_history_screen.dart';
 import 'settings/settings_screen.dart';
 
 /// Main navigation wrapper with bottom navigation bar
@@ -24,6 +25,7 @@ class _MainNavigationState extends State<MainNavigation> {
     HomeScreen(),
     HistoryScreen(),
     AlertsScreen(),
+    QuestionnaireHistoryScreen(),
     SettingsScreen(),
   ];
 
@@ -80,6 +82,13 @@ class _MainNavigationState extends State<MainNavigation> {
                 child: Icon(Icons.notifications_rounded),
               ),
               label: 'Alerts',
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Icon(Icons.assignment_rounded),
+              ),
+              label: 'Check-In',
             ),
             BottomNavigationBarItem(
               icon: Padding(

@@ -4,18 +4,46 @@ import 'package:provider/provider.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_text_styles.dart';
 import 'views/main_navigation.dart';
+import 'views/questionnaire/questionnaire_screen.dart';
 import 'controllers/blood_pressure_controller.dart';
 import 'controllers/device_controller.dart';
+import 'controllers/questionnaire_controller.dart';
 import 'repositories/blood_pressure_repository.dart';
 import 'repositories/device_repository.dart';
+import 'repositories/questionnaire_repository.dart';
+import 'services/notification_service.dart';
 
-void main() {
+// Global navigator key for handling notification navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
   // Set preferred orientations and system UI
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Initialize notification service (does not request permissions or schedule)
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+
+  // Set up notification tap handler
+  notificationService.onNotificationTap = (payload) {
+    if (payload == 'questionnaire') {
+      // Navigate to questionnaire when notification is tapped
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => const QuestionnaireScreen(
+            templateId: 'orthostatic_assessment',
+          ),
+        ),
+      );
+    }
+  };
+
+  // Note: Notifications will only be scheduled when user explicitly
+  // enables them through the Settings screen toggle
 
   runApp(const BloodPressureMonitorApp());
 }
@@ -30,6 +58,7 @@ class BloodPressureMonitorApp extends StatelessWidget {
     // Initialize repositories (can be easily swapped with Firebase/API)
     final bpRepository = MockBloodPressureRepository();
     final deviceRepository = MockDeviceRepository();
+    final questionnaireRepository = MockQuestionnaireRepository();
 
     return MultiProvider(
       providers: [
@@ -41,11 +70,16 @@ class BloodPressureMonitorApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => DeviceController(deviceRepository),
         ),
+        // Questionnaire Controller
+        ChangeNotifierProvider(
+          create: (_) => QuestionnaireController(questionnaireRepository),
+        ),
       ],
       child: MaterialApp(
         title: 'BP Monitor',
         debugShowCheckedModeBanner: false,
         theme: _buildAppTheme(),
+        navigatorKey: navigatorKey,
         home: const MainNavigation(),
       ),
     );
