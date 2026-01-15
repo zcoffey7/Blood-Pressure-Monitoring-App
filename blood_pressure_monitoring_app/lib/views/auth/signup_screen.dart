@@ -45,15 +45,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Account created and logged in successfully
-      // Wait a moment for auth state to propagate
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      if (!mounted) return;
-      
+      // Account created successfully
       // Pop back to root so AuthWrapper can rebuild and show MainNavigation
-      // This removes both SignUpScreen and LoginScreen from the stack
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // AuthWrapper's StreamBuilder will automatically detect the auth state change
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } else if (authController.error != null) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,11 +88,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Icon
-                  Icon(
-                    Icons.person_add,
-                    size: 80,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.person_add, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
 
                   // Title
@@ -254,7 +247,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Consumer<AuthController>(
                     builder: (context, authController, child) {
                       return ElevatedButton(
-                        onPressed: authController.isLoading ? null : _handleSignUp,
+                        onPressed: authController.isLoading
+                            ? null
+                            : _handleSignUp,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           minimumSize: const Size.fromHeight(60),
@@ -303,4 +298,3 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
-

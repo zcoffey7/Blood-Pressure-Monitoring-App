@@ -19,18 +19,18 @@ import 'repositories/questionnaire_repository.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
 
+// Note: firebase_auth import needed for User type in AuthWrapper
+
 // Global navigator key for handling notification navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   // Set preferred orientations and system UI
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -46,9 +46,8 @@ void main() async {
       // Navigate to questionnaire when notification is tapped
       navigatorKey.currentState?.push(
         MaterialPageRoute(
-          builder: (context) => const QuestionnaireScreen(
-            templateId: 'orthostatic_assessment',
-          ),
+          builder: (context) =>
+              const QuestionnaireScreen(templateId: 'orthostatic_assessment'),
         ),
       );
     }
@@ -76,9 +75,7 @@ class BloodPressureMonitorApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         // Auth Controller
-        ChangeNotifierProvider(
-          create: (_) => AuthController(authService),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthController(authService)),
         // Blood Pressure Controller
         ChangeNotifierProvider(
           create: (_) => BloodPressureController(bpRepository),
@@ -192,21 +189,26 @@ class BloodPressureMonitorApp extends StatelessWidget {
 
 /// Wrapper widget that handles authentication state
 /// Shows login screen if not authenticated, main navigation if authenticated
+/// Follows SRP: Only responsible for routing based on auth state
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Use StreamBuilder to directly listen to Firebase auth state changes
+    // Access AuthController to get the auth state stream
+    final authController = context.read<AuthController>();
+
+    // Use StreamBuilder with AuthController's stream (maintains abstraction)
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: authController.authStateChanges,
+      initialData: authController.user,
       builder: (context, snapshot) {
         // Show loading indicator while checking auth state
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            backgroundColor: AppColors.background,
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 

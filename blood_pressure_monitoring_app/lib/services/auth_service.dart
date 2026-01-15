@@ -1,8 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Service for handling Firebase Authentication operations
+/// Follows SRP: Only responsible for auth operations
+/// Follows DIP: Depends on FirebaseAuth abstraction
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth;
+
+  /// Constructor with optional FirebaseAuth instance for testing
+  AuthService({FirebaseAuth? firebaseAuth})
+    : _auth = firebaseAuth ?? FirebaseAuth.instance;
 
   /// Get the current user
   User? get currentUser => _auth.currentUser;
@@ -103,4 +109,3 @@ class AuthService {
     }
   }
 }
-

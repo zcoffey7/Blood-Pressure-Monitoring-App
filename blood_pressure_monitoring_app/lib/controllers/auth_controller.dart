@@ -1,17 +1,20 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 /// Controller for managing authentication state
+/// Follows SRP: Only responsible for auth state and operations
 class AuthController extends ChangeNotifier {
   final AuthService _authService;
+  StreamSubscription<User?>? _authSubscription;
 
   AuthController(this._authService) {
     // Initialize with current user
     _user = _authService.currentUser;
-    
+
     // Listen to auth state changes
-    _authService.authStateChanges.listen((User? user) {
+    _authSubscription = _authService.authStateChanges.listen((User? user) {
       _user = user;
       notifyListeners();
     });
@@ -21,25 +24,26 @@ class AuthController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  /// Current user
+  @override
+  void dispose() {
+    // Cancel stream subscription to prevent memory leaks
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Getters
   User? get user => _user;
-
-  /// Whether a user is signed in
   bool get isSignedIn => _user != null;
-
-  /// Loading state
   bool get isLoading => _isLoading;
-
-  /// Error message
   String? get error => _error;
-
-  /// User's email
   String? get userEmail => _user?.email;
-
-  /// User's display name
   String? get userDisplayName => _user?.displayName;
 
+  /// Auth state stream for direct listening
+  Stream<User?> get authStateChanges => _authService.authStateChanges;
+
   /// Sign up with email and password
+  /// Returns true on success, false on failure
   Future<bool> signUp({
     required String email,
     required String password,
@@ -59,10 +63,8 @@ class AuthController extends ChangeNotifier {
         await _authService.updateDisplayName(displayName);
       }
 
-      // Ensure user state is updated immediately
-      _user = _authService.currentUser;
+      // No need to manually update _user - stream listener handles it
       _setLoading(false);
-      notifyListeners();
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -72,10 +74,8 @@ class AuthController extends ChangeNotifier {
   }
 
   /// Sign in with email and password
-  Future<bool> signIn({
-    required String email,
-    required String password,
-  }) async {
+  /// Returns true on success, false on failure
+  Future<bool> signIn({required String email, required String password}) async {
     _setLoading(true);
     _clearError();
 
@@ -84,11 +84,9 @@ class AuthController extends ChangeNotifier {
         email: email,
         password: password,
       );
-      
-      // Ensure user state is updated immediately
-      _user = _authService.currentUser;
+
+      // No need to manually update _user - stream listener handles it
       _setLoading(false);
-      notifyListeners();
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -181,4 +179,3 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 }
-
