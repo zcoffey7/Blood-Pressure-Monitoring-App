@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../services/notification_service.dart';
+import '../../controllers/auth_controller.dart';
 
 /// Settings screen for app configuration
 /// Follows SRP - Only responsible for displaying settings
@@ -46,6 +48,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text('Settings', style: AppTextStyles.heading1),
               const SizedBox(height: 24),
+
+              // Account Section
+              Consumer<AuthController>(
+                builder: (context, authController, child) {
+                  return _buildSectionCard(
+                    title: 'Account',
+                    icon: Icons.person_rounded,
+                    children: [
+                      _buildSettingTile(
+                        icon: Icons.email,
+                        title: 'Email',
+                        subtitle: authController.userEmail ?? 'Not available',
+                      ),
+                      const Divider(),
+                      _buildSettingTile(
+                        icon: Icons.badge,
+                        title: 'Display Name',
+                        subtitle: authController.userDisplayName ?? 'Not set',
+                      ),
+                      const Divider(),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleSignOut(context),
+                          icon: const Icon(Icons.logout, size: 24),
+                          label: const Text('Sign Out'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.danger,
+                            minimumSize: const Size.fromHeight(50),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
 
               // Notifications Section
               _buildSectionCard(
@@ -271,6 +311,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    // Show confirmation dialog
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Sign Out',
+          style: AppTextStyles.heading3,
+        ),
+        content: Text(
+          'Are you sure you want to sign out?',
+          style: AppTextStyles.bodyLarge,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.bodyLarge,
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSignOut == true) {
+      if (!mounted) return;
+      
+      // Capture BuildContext-dependent objects before async call
+      // ignore: use_build_context_synchronously
+      final messenger = ScaffoldMessenger.of(context);
+      // ignore: use_build_context_synchronously
+      final authController = Provider.of<AuthController>(context, listen: false);
+      
+      await authController.signOut();
+
+      if (!mounted) return;
+      
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Successfully signed out',
+            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+          ),
+          backgroundColor: AppColors.info,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 }

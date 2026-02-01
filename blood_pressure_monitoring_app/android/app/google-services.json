@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "287385361685",
+    "project_id": "wireless-bp-monitoring",
+    "storage_bucket": "wireless-bp-monitoring.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:287385361685:android:6c5e02ca91439d76b89d1c",
+        "android_client_info": {
+          "package_name": "com.example.blood_pressure_monitoring_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTtdIKeHHhl1h9WX32driESKoUpYwV4ms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
