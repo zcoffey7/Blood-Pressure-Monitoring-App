@@ -161,9 +161,7 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Daily Health Check-In',
-                    style: AppTextStyles.heading3.copyWith(
-                      color: Colors.white,
-                    ),
+                    style: AppTextStyles.heading3.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -175,11 +173,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-              size: 24,
-            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24),
           ],
         ),
       ),
@@ -190,9 +184,8 @@ class HomeScreen extends StatelessWidget {
   Future<void> _startQuestionnaire(BuildContext context) async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const QuestionnaireScreen(
-          templateId: 'orthostatic_assessment',
-        ),
+        builder: (context) =>
+            const QuestionnaireScreen(templateId: 'orthostatic_assessment'),
       ),
     );
 
