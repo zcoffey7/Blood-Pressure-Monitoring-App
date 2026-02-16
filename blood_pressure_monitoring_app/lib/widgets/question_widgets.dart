@@ -71,7 +71,7 @@ class _ScaleButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.white,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
+            color: isSelected ? AppColors.primary : AppColors.divider(context),
             width: 2,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -80,7 +80,7 @@ class _ScaleButton extends StatelessWidget {
           child: Text(
             '$value',
             style: AppTextStyles.heading2.copyWith(
-              color: isSelected ? Colors.white : AppColors.textPrimary,
+              color: isSelected ? Colors.white : AppColors.textPrimary(context),
             ),
           ),
         ),
@@ -157,7 +157,7 @@ class _RatingOption extends StatelessWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : Colors.white,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
+            color: isSelected ? AppColors.primary : AppColors.divider(context),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -170,7 +170,7 @@ class _RatingOption extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : Colors.white,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.divider,
+                  color: isSelected ? AppColors.primary : AppColors.divider(context),
                   width: 2,
                 ),
                 shape: BoxShape.circle,
@@ -179,7 +179,7 @@ class _RatingOption extends StatelessWidget {
                 child: Text(
                   '$value',
                   style: AppTextStyles.heading3.copyWith(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected ? Colors.white : AppColors.textPrimary(context),
                     fontSize: 18,
                   ),
                 ),
@@ -235,7 +235,7 @@ class DateTimeQuestionWidget extends StatelessWidget {
               border: Border.all(
                 color: currentValue != null
                     ? AppColors.primary
-                    : AppColors.divider,
+                    : AppColors.divider(context),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -255,14 +255,14 @@ class DateTimeQuestionWidget extends StatelessWidget {
                         : 'Tap to select ${timeOnly ? "time" : "date & time"}',
                     style: AppTextStyles.bodyLarge.copyWith(
                       color: currentValue != null
-                          ? AppColors.textPrimary
-                          : AppColors.textHint,
+                          ? AppColors.textPrimary(context)
+                          : AppColors.textHint(context),
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                   size: 20,
                 ),
               ],
@@ -389,17 +389,17 @@ class _TextQuestionWidgetState extends State<TextQuestionWidget> {
           decoration: InputDecoration(
             hintText: widget.question.placeholder ?? 'Enter your response...',
             hintStyle: AppTextStyles.bodyLarge.copyWith(
-              color: AppColors.textHint,
+              color: AppColors.textHint(context),
             ),
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.divider, width: 2),
+              borderSide: BorderSide(color: AppColors.divider(context), width: 2),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.divider, width: 2),
+              borderSide: BorderSide(color: AppColors.divider(context), width: 2),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -450,7 +450,7 @@ class MultipleChoiceQuestionWidget extends StatelessWidget {
                       ? AppColors.primary.withValues(alpha: 0.1)
                       : Colors.white,
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.divider,
+                    color: isSelected ? AppColors.primary : AppColors.divider(context),
                     width: isSelected ? 2 : 1,
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -463,7 +463,7 @@ class MultipleChoiceQuestionWidget extends StatelessWidget {
                           : Icons.radio_button_unchecked,
                       color: isSelected
                           ? AppColors.primary
-                          : AppColors.textSecondary,
+                          : AppColors.textSecondary(context),
                       size: 28,
                     ),
                     const SizedBox(width: 16),
