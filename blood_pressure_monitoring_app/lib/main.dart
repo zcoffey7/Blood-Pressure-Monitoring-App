@@ -13,22 +13,17 @@ import 'controllers/blood_pressure_controller.dart';
 import 'controllers/device_controller.dart';
 import 'controllers/questionnaire_controller.dart';
 import 'controllers/auth_controller.dart';
+import 'controllers/theme_controller.dart';
 import 'repositories/blood_pressure_repository.dart';
 import 'repositories/device_repository.dart';
 import 'repositories/questionnaire_repository.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
 
-// Note: firebase_auth import needed for User type in AuthWrapper
-
-// Global navigator key for handling notification navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  // Set preferred orientations and system UI
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   SystemChrome.setPreferredOrientations([
@@ -36,14 +31,11 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize notification service (does not request permissions or schedule)
   final notificationService = NotificationService();
   await notificationService.initialize();
 
-  // Set up notification tap handler
   notificationService.onNotificationTap = (payload) {
     if (payload == 'questionnaire') {
-      // Navigate to questionnaire when notification is tapped
       navigatorKey.currentState?.push(
         MaterialPageRoute(
           builder: (context) =>
@@ -53,20 +45,14 @@ void main() async {
     }
   };
 
-  // Note: Notifications will only be scheduled when user explicitly
-  // enables them through the Settings screen toggle
-
   runApp(const BloodPressureMonitorApp());
 }
 
-/// Root application widget
-/// Configures app-wide theme optimized for elderly users
 class BloodPressureMonitorApp extends StatelessWidget {
   const BloodPressureMonitorApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Initialize repositories (can be easily swapped with Firebase/API)
     final bpRepository = MockBloodPressureRepository();
     final deviceRepository = MockDeviceRepository();
     final questionnaireRepository = MockQuestionnaireRepository();
@@ -74,51 +60,48 @@ class BloodPressureMonitorApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        // Auth Controller
+        ChangeNotifierProvider(create: (_) => ThemeController()),
         ChangeNotifierProvider(create: (_) => AuthController(authService)),
-        // Blood Pressure Controller
         ChangeNotifierProvider(
-          create: (_) => BloodPressureController(bpRepository),
-        ),
-        // Device Controller
+            create: (_) => BloodPressureController(bpRepository)),
         ChangeNotifierProvider(
-          create: (_) => DeviceController(deviceRepository),
-        ),
-        // Questionnaire Controller
+            create: (_) => DeviceController(deviceRepository)),
         ChangeNotifierProvider(
-          create: (_) => QuestionnaireController(questionnaireRepository),
-        ),
+            create: (_) => QuestionnaireController(questionnaireRepository)),
       ],
-      child: MaterialApp(
-        title: 'BP Monitor',
-        debugShowCheckedModeBanner: false,
-        theme: _buildAppTheme(),
-        navigatorKey: navigatorKey,
-        home: const AuthWrapper(),
+      child: Consumer<ThemeController>(
+        builder: (context, themeController, _) {
+          return MaterialApp(
+            title: 'BP Monitor',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeController.themeMode,
+            theme: _buildLightTheme(),
+            darkTheme: _buildDarkTheme(),
+            navigatorKey: navigatorKey,
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }
 
-  /// Build custom theme optimized for elderly users
-  /// High contrast colors and large text for accessibility
-  ThemeData _buildAppTheme() {
+  ThemeData _buildLightTheme() {
     return ThemeData(
-      // Color scheme
+      brightness: Brightness.light,
+      useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
+        brightness: Brightness.light,
         primary: AppColors.primary,
         secondary: AppColors.primaryDark,
-        surface: AppColors.background,
+        surface: AppColors.lightSurface,
+        onSurface: AppColors.lightTextPrimary,
       ),
-
-      // Scaffold background
-      scaffoldBackgroundColor: AppColors.background,
-
-      // AppBar theme
+      scaffoldBackgroundColor: AppColors.lightBackground,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        elevation: 2,
+        elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontSize: 24,
@@ -126,8 +109,6 @@ class BloodPressureMonitorApp extends StatelessWidget {
           color: Colors.white,
         ),
       ),
-
-      // Text theme - Large fonts for elderly users
       textTheme: const TextTheme(
         displayLarge: AppTextStyles.heading1,
         displayMedium: AppTextStyles.heading2,
@@ -137,87 +118,180 @@ class BloodPressureMonitorApp extends StatelessWidget {
         bodySmall: AppTextStyles.bodySmall,
         labelLarge: AppTextStyles.button,
       ),
-
-      // Card theme
       cardTheme: CardThemeData(
-        color: AppColors.cardBackground,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: AppColors.lightCardBackground,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-
-      // Elevated button theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.buttonPrimary,
           foregroundColor: Colors.white,
           textStyle: AppTextStyles.button,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
         ),
       ),
-
-      // Outlined button theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.buttonSecondary,
           textStyle: AppTextStyles.button,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          side: const BorderSide(color: AppColors.buttonSecondary, width: 2),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: const BorderSide(color: AppColors.buttonSecondary, width: 1.5),
         ),
       ),
-
-      // Icon theme - Larger icons for visibility
-      iconTheme: const IconThemeData(size: 28, color: AppColors.textPrimary),
-
-      // Divider theme
+      iconTheme:
+          const IconThemeData(size: 28, color: AppColors.lightTextPrimary),
       dividerTheme: const DividerThemeData(
-        color: AppColors.divider,
+        color: AppColors.lightDivider,
         thickness: 1,
       ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.lightInputFill,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.lightCardBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.lightCardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.lightSurface,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+      ),
+    );
+  }
 
-      // Use Material 3
+  ThemeData _buildDarkTheme() {
+    return ThemeData(
+      brightness: Brightness.dark,
       useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.dark,
+        primary: AppColors.primary,
+        secondary: AppColors.primaryDark,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
+      ),
+      scaffoldBackgroundColor: AppColors.darkBackground,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.darkSurface,
+        foregroundColor: AppColors.darkTextPrimary,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: AppColors.darkTextPrimary,
+        ),
+      ),
+      textTheme: TextTheme(
+        displayLarge:
+            AppTextStyles.heading1.copyWith(color: AppColors.darkTextPrimary),
+        displayMedium:
+            AppTextStyles.heading2.copyWith(color: AppColors.darkTextPrimary),
+        displaySmall:
+            AppTextStyles.heading3.copyWith(color: AppColors.darkTextPrimary),
+        bodyLarge:
+            AppTextStyles.bodyLarge.copyWith(color: AppColors.darkTextPrimary),
+        bodyMedium:
+            AppTextStyles.bodyMedium.copyWith(color: AppColors.darkTextPrimary),
+        bodySmall:
+            AppTextStyles.bodySmall.copyWith(color: AppColors.darkTextSecondary),
+        labelLarge: AppTextStyles.button,
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.darkCardBackground,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.buttonPrimary,
+          foregroundColor: Colors.white,
+          textStyle: AppTextStyles.button,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 0,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: AppTextStyles.button,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+      iconTheme:
+          const IconThemeData(size: 28, color: AppColors.darkTextPrimary),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.darkDivider,
+        thickness: 1,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkInputFill,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.darkCardBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.darkCardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.darkSurface,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
+      ),
     );
   }
 }
 
-/// Wrapper widget that handles authentication state
-/// Shows login screen if not authenticated, main navigation if authenticated
-/// Follows SRP: Only responsible for routing based on auth state
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Access AuthController to get the auth state stream
     final authController = context.read<AuthController>();
 
-    // Use StreamBuilder with AuthController's stream (maintains abstraction)
     return StreamBuilder<User?>(
       stream: authController.authStateChanges,
       initialData: authController.user,
       builder: (context, snapshot) {
-        // Show loading indicator while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           );
         }
 
-        // Show login screen if not signed in
         if (!snapshot.hasData || snapshot.data == null) {
           return const LoginScreen();
         }
 
-        // Show main navigation if signed in
         return const MainNavigation();
       },
     );

@@ -5,8 +5,6 @@ import '../constants/app_text_styles.dart';
 import '../controllers/blood_pressure_controller.dart';
 import '../controllers/device_controller.dart';
 
-/// Widget displaying action buttons for monitoring control
-/// Follows SRP - Only responsible for displaying action buttons
 class ActionButtons extends StatefulWidget {
   const ActionButtons({super.key});
 
@@ -23,11 +21,12 @@ class _ActionButtonsState extends State<ActionButtons> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder(context)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: AppColors.shadow(context),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -35,12 +34,8 @@ class _ActionButtonsState extends State<ActionButtons> {
       ),
       child: Row(
         children: [
-          // Pause/Resume Monitoring Button
           Expanded(child: _buildPauseButton(context)),
-
           const SizedBox(width: 12),
-
-          // Re-Sync Device Button
           Expanded(child: _buildSyncButton(context)),
         ],
       ),
@@ -59,13 +54,11 @@ class _ActionButtonsState extends State<ActionButtons> {
         style: AppTextStyles.button.copyWith(fontSize: 16),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isMonitoring
-            ? AppColors.buttonPrimary
-            : AppColors.normal,
+        backgroundColor: isMonitoring ? AppColors.buttonPrimary : AppColors.normal,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 0,
       ),
     );
   }
@@ -82,9 +75,8 @@ class _ActionButtonsState extends State<ActionButtons> {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.buttonSecondary,
-                ),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(AppColors.buttonSecondary),
               ),
             )
           : const Icon(Icons.sync, size: 24),
@@ -93,19 +85,19 @@ class _ActionButtonsState extends State<ActionButtons> {
         style: AppTextStyles.button.copyWith(
           fontSize: 16,
           color: isSyncing
-              ? AppColors.textSecondary
+              ? AppColors.textSecondary(context)
               : AppColors.buttonSecondary,
         ),
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.buttonSecondary,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         side: BorderSide(
           color: isSyncing
-              ? AppColors.textSecondary
+              ? AppColors.textSecondary(context)
               : AppColors.buttonSecondary,
-          width: 2,
+          width: 1.5,
         ),
       ),
     );
@@ -116,27 +108,18 @@ class _ActionButtonsState extends State<ActionButtons> {
     final isCurrentlyMonitoring = !bpController.isPaused;
 
     if (isCurrentlyMonitoring) {
-      // Pause monitoring
       bpController.pauseMonitoring();
     } else {
-      // Resume monitoring
       bpController.resumeMonitoring();
     }
 
-    final message = isCurrentlyMonitoring
-        ? 'Monitoring paused - Data updates stopped'
-        : 'Monitoring resumed - Data updates active';
-
-    // Show feedback to user
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-        ),
-        backgroundColor: isCurrentlyMonitoring
-            ? AppColors.warning
-            : AppColors.normal,
+        content: Text(isCurrentlyMonitoring
+            ? 'Monitoring paused — Data updates stopped'
+            : 'Monitoring resumed — Data updates active'),
+        backgroundColor:
+            isCurrentlyMonitoring ? AppColors.warning : AppColors.normal,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -149,48 +132,36 @@ class _ActionButtonsState extends State<ActionButtons> {
     final deviceController = context.read<DeviceController>();
     final bpController = context.read<BloodPressureController>();
 
-    // Increment retry count
     _syncRetryCount++;
-
-    // Attempt to sync with device
     final success = await deviceController.syncDevice();
 
     if (!context.mounted) return;
 
     if (success) {
-      // Reset retry count on success
       _syncRetryCount = 0;
-
-      // Refresh blood pressure data after successful sync
       await bpController.refresh();
-
       if (!context.mounted) return;
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 12),
-              Text(
-                'Device synced successfully',
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-              ),
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Device synced successfully'),
             ],
           ),
           backgroundColor: AppColors.normal,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
         ),
       );
     } else {
-      // Check if we've exceeded retry limit
       final canRetry = _syncRetryCount < _maxRetryAttempts;
 
-      // Show error message with retry button (if attempts remain)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -198,19 +169,17 @@ class _ActionButtonsState extends State<ActionButtons> {
               const Icon(Icons.error, color: Colors.white),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  canRetry
-                      ? 'Failed to sync device (Attempt $_syncRetryCount/$_maxRetryAttempts)'
-                      : 'Failed to sync device. Please try again later.',
-                  style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-                ),
+                child: Text(canRetry
+                    ? 'Failed to sync (Attempt $_syncRetryCount/$_maxRetryAttempts)'
+                    : 'Failed to sync. Please try again later.'),
               ),
             ],
           ),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
           action: canRetry
               ? SnackBarAction(
@@ -222,15 +191,9 @@ class _ActionButtonsState extends State<ActionButtons> {
         ),
       );
 
-      // Reset retry count after max attempts reached
       if (!canRetry) {
-        // Wait a bit before resetting to prevent immediate retries
         Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) {
-            setState(() {
-              _syncRetryCount = 0;
-            });
-          }
+          if (mounted) setState(() => _syncRetryCount = 0);
         });
       }
     }

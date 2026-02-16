@@ -4,7 +4,6 @@ import '../../controllers/auth_controller.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 
-/// Screen for password reset functionality
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -23,9 +22,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _handleResetPassword() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final authController = context.read<AuthController>();
     final success = await authController.sendPasswordResetEmail(
@@ -34,36 +31,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Password reset email sent! Please check your inbox.',
-              style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
-            ),
-            backgroundColor: AppColors.normal,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Password reset email sent! Check your inbox.'),
+          backgroundColor: AppColors.normal,
+          duration: const Duration(seconds: 4),
+        ));
         Navigator.pop(context);
       } else if (authController.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              authController.error!,
-              style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
-            ),
-            backgroundColor: AppColors.danger,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(authController.error!),
+          backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 4),
+        ));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Reset Password'),
         leading: IconButton(
@@ -78,100 +66,63 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Form(
               key: _formKey,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Icon
-                  Icon(
-                    Icons.lock_reset,
-                    size: 80,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.lock_reset, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
-
-                  // Title
-                  Text(
-                    'Forgot Password?',
-                    style: AppTextStyles.heading2.copyWith(
-                      color: AppColors.primary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('Forgot Password?',
+                      style: AppTextStyles.heading2
+                          .copyWith(color: AppColors.primary),
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-
-                  // Description
                   Text(
-                    'Enter your email address and we\'ll send you instructions to reset your password.',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    "Enter your email address and we'll send you instructions to reset your password.",
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: AppColors.textSecondary(context)),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-
-                  // Email field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
-                    style: AppTextStyles.bodyLarge,
-                    decoration: InputDecoration(
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: colorScheme.onSurface),
+                    decoration: const InputDecoration(
                       labelText: 'Email',
-                      labelStyle: AppTextStyles.bodyLarge,
-                      prefixIcon: const Icon(Icons.email, size: 28),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.cardBackground,
+                      prefixIcon: Icon(Icons.email, size: 28),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Please enter your email';
+                      if (!v.contains('@')) return 'Please enter a valid email';
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
-
-                  // Reset button
                   Consumer<AuthController>(
-                    builder: (context, authController, child) {
+                    builder: (context, auth, _) {
                       return ElevatedButton(
-                        onPressed: authController.isLoading
-                            ? null
-                            : _handleResetPassword,
+                        onPressed: auth.isLoading ? null : _handleResetPassword,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           minimumSize: const Size.fromHeight(60),
                         ),
-                        child: authController.isLoading
+                        child: auth.isLoading
                             ? const SizedBox(
                                 height: 24,
                                 width: 24,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  color: Colors.white,
-                                ),
-                              )
+                                    strokeWidth: 3, color: Colors.white))
                             : const Text('Send Reset Link'),
                       );
                     },
                   ),
                   const SizedBox(height: 16),
-
-                  // Back to sign in
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      'Back to Sign In',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
+                    child: Text('Back to Sign In',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: AppColors.primary)),
                   ),
                 ],
               ),
@@ -182,4 +133,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
-
