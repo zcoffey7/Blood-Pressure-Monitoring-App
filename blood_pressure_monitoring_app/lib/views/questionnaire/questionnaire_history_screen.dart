@@ -125,7 +125,9 @@ class _QuestionnaireHistoryScreenState
         const SizedBox(height: 8),
         Text(value, style: AppTextStyles.heading2.copyWith(color: color)),
         const SizedBox(height: 4),
-        Text(label, style: AppTextStyles.bodySmall),
+        Text(label,
+            style: AppTextStyles.bodySmall
+                .copyWith(color: AppColors.textSecondary(context))),
       ],
     );
   }

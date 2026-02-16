@@ -47,6 +47,9 @@ dependencies:
   # UUID generation
   uuid: ^4.5.1
   
+  # Theme persistence
+  shared_preferences: ^2.3.4
+  
   # Local notifications
   flutter_local_notifications: ^18.0.1
   

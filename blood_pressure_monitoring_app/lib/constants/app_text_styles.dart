@@ -43,21 +43,21 @@ class AppTextStyles {
   );
 
   // ── Status ──────────────────────────────────────────────────
-  static TextStyle statusNormal = const TextStyle(
+  static const TextStyle statusNormal = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     color: Color(0xFF22C55E),
     height: 1.2,
   );
 
-  static TextStyle statusWarning = const TextStyle(
+  static const TextStyle statusWarning = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     color: Color(0xFFF59E0B),
     height: 1.2,
   );
 
-  static TextStyle statusDanger = const TextStyle(
+  static const TextStyle statusDanger = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
     color: Color(0xFFEF4444),
