@@ -5,8 +5,6 @@ import '../constants/app_text_styles.dart';
 import '../controllers/device_controller.dart';
 import '../models/device_connection.dart';
 
-/// Widget displaying device connection status
-/// Follows SRP - Only responsible for displaying connection info
 class ConnectionStatusWidget extends StatelessWidget {
   const ConnectionStatusWidget({super.key});
 
@@ -16,18 +14,17 @@ class ConnectionStatusWidget extends StatelessWidget {
       builder: (context, controller, child) {
         final connection = controller.connection;
 
-        if (connection == null) {
-          return _buildLoadingState();
-        }
+        if (connection == null) return _buildLoading(context);
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.cardBackground(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.cardBorder(context)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.shadow,
+                color: AppColors.shadow(context),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -35,19 +32,14 @@ class ConnectionStatusWidget extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Connection Icon
               _buildConnectionIcon(connection),
               const SizedBox(width: 12),
-
-              // Connection Status Text
               Text(
                 connection.isConnected ? 'Connected' : 'Disconnected',
-                style: AppTextStyles.connectionStatus,
+                style: AppTextStyles.connectionStatus
+                    .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
-
               const Spacer(),
-
-              // Battery Indicator
               _buildBatteryIndicator(connection),
             ],
           ),
@@ -56,39 +48,32 @@ class ConnectionStatusWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoading(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder(context)),
       ),
       child: Row(
         children: [
           const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2)),
           const SizedBox(width: 12),
-          Text('Loading...', style: AppTextStyles.connectionStatus),
+          Text('Loading...',
+              style: AppTextStyles.connectionStatus
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface)),
         ],
       ),
     );
   }
 
   Widget _buildConnectionIcon(DeviceConnection connection) {
-    final color = connection.isConnected
-        ? AppColors.connected
-        : AppColors.disconnected;
-
+    final color =
+        connection.isConnected ? AppColors.connected : AppColors.disconnected;
     IconData icon;
     switch (connection.connectionType) {
       case ConnectionType.bluetooth:
@@ -101,15 +86,12 @@ class ConnectionStatusWidget extends StatelessWidget {
         icon = Icons.cloud_off;
         break;
     }
-
     return Icon(icon, color: color, size: 24);
   }
 
   Widget _buildBatteryIndicator(DeviceConnection connection) {
-    final batteryStatus = connection.batteryStatus;
     Color batteryColor;
-
-    switch (batteryStatus) {
+    switch (connection.batteryStatus) {
       case BatteryStatus.high:
         batteryColor = AppColors.batteryHigh;
         break;
@@ -125,10 +107,9 @@ class ConnectionStatusWidget extends StatelessWidget {
       children: [
         Icon(Icons.battery_std, color: batteryColor, size: 24),
         const SizedBox(width: 4),
-        Text(
-          '${connection.batteryLevel}%',
-          style: AppTextStyles.connectionStatus.copyWith(color: batteryColor),
-        ),
+        Text('${connection.batteryLevel}%',
+            style: AppTextStyles.connectionStatus
+                .copyWith(color: batteryColor)),
       ],
     );
   }

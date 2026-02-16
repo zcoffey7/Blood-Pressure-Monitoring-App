@@ -1,47 +1,96 @@
 import 'package:flutter/material.dart';
 
-/// App-wide color constants following high-contrast accessibility guidelines
-/// for elderly users with potential vision impairments.
+/// App-wide color constants with light and dark mode support.
+/// Maintains high-contrast accessibility for elderly users.
 class AppColors {
-  // Primary Colors - High contrast for readability
-  static const Color primary = Color(0xFF2196F3); // Bright blue
-  static const Color primaryDark = Color(0xFF1976D2);
-  static const Color primaryLight = Color(0xFFBBDEFB);
-  
-  // Background Colors
-  static const Color background = Color(0xFFFFFFFF); // Pure white
-  static const Color cardBackground = Color(0xFFF5F5F5); // Light gray
-  
-  // Text Colors - High contrast
-  static const Color textPrimary = Color(0xFF000000); // Pure black
-  static const Color textSecondary = Color(0xFF424242); // Dark gray
-  static const Color textHint = Color(0xFF757575); // Medium gray
-  
-  // Status Colors - Health indicators
-  static const Color normal = Color(0xFF4CAF50); // Green
-  static const Color warning = Color(0xFFFF9800); // Orange
-  static const Color danger = Color(0xFFF44336); // Red
-  static const Color info = Color(0xFF2196F3); // Blue
-  
-  // Blood Pressure Chart Colors
-  static const Color systolic = Color(0xFF2196F3); // Blue for systolic
-  static const Color diastolic = Color(0xFF9C27B0); // Purple for diastolic
-  static const Color heartRate = Color(0xFF4CAF50); // Green for heart rate
-  
-  // UI Element Colors
-  static const Color cardBorder = Color(0xFF4CAF50); // Green border
-  static const Color divider = Color(0xFFE0E0E0);
-  static const Color shadow = Color(0x1A000000);
-  
-  // Button Colors
-  static const Color buttonPrimary = Color(0xFFF44336); // Red for critical actions
-  static const Color buttonSecondary = Color(0xFF2196F3); // Blue for secondary actions
-  
-  // Connection Status
-  static const Color connected = Color(0xFF4CAF50); // Green
-  static const Color disconnected = Color(0xFF9E9E9E); // Gray
-  static const Color batteryHigh = Color(0xFF4CAF50); // Green
-  static const Color batteryMedium = Color(0xFFFF9800); // Orange
-  static const Color batteryLow = Color(0xFFF44336); // Red
-}
+  // ── Brand / Accent ──────────────────────────────────────────
+  static const Color primary = Color(0xFF3B82F6); // Modern blue
+  static const Color primaryDark = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFFDBEAFE);
 
+  // ── Status Colors (shared across themes) ────────────────────
+  static const Color normal = Color(0xFF22C55E);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color danger = Color(0xFFEF4444);
+  static const Color info = Color(0xFF3B82F6);
+
+  // ── Chart Colors (shared) ───────────────────────────────────
+  static const Color systolic = Color(0xFF3B82F6);
+  static const Color diastolic = Color(0xFFA855F7);
+  static const Color heartRate = Color(0xFF22C55E);
+
+  // ── Connection Status (shared) ──────────────────────────────
+  static const Color connected = Color(0xFF22C55E);
+  static const Color disconnected = Color(0xFF9CA3AF);
+  static const Color batteryHigh = Color(0xFF22C55E);
+  static const Color batteryMedium = Color(0xFFF59E0B);
+  static const Color batteryLow = Color(0xFFEF4444);
+
+  // ── Light Theme ─────────────────────────────────────────────
+  static const Color lightBackground = Color(0xFFF8FAFC);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightCardBackground = Color(0xFFFFFFFF);
+  static const Color lightTextPrimary = Color(0xFF0F172A);
+  static const Color lightTextSecondary = Color(0xFF64748B);
+  static const Color lightTextHint = Color(0xFF94A3B8);
+  static const Color lightDivider = Color(0xFFE2E8F0);
+  static const Color lightCardBorder = Color(0xFFE2E8F0);
+  static const Color lightInputFill = Color(0xFFF1F5F9);
+
+  // ── Dark Theme ──────────────────────────────────────────────
+  static const Color darkBackground = Color(0xFF0F172A);
+  static const Color darkSurface = Color(0xFF1E293B);
+  static const Color darkCardBackground = Color(0xFF1E293B);
+  static const Color darkTextPrimary = Color(0xFFF1F5F9);
+  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  static const Color darkTextHint = Color(0xFF64748B);
+  static const Color darkDivider = Color(0xFF334155);
+  static const Color darkCardBorder = Color(0xFF334155);
+  static const Color darkInputFill = Color(0xFF1E293B);
+
+  // ── Helpers ─────────────────────────────────────────────────
+  static Color background(BuildContext context) =>
+      Theme.of(context).scaffoldBackgroundColor;
+
+  static Color surface(BuildContext context) =>
+      Theme.of(context).colorScheme.surface;
+
+  static Color cardBackground(BuildContext context) =>
+      Theme.of(context).cardTheme.color ?? lightCardBackground;
+
+  static Color textPrimary(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurface;
+
+  static Color textSecondary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightTextSecondary
+          : darkTextSecondary;
+
+  static Color textHint(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightTextHint
+          : darkTextHint;
+
+  static Color divider(BuildContext context) =>
+      Theme.of(context).dividerColor;
+
+  static Color cardBorder(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightCardBorder
+          : darkCardBorder;
+
+  static Color inputFill(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightInputFill
+          : darkInputFill;
+
+  static Color shadow(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? const Color(0x0A000000)
+          : const Color(0x40000000);
+
+  // ── Button colors ───────────────────────────────────────────
+  static const Color buttonPrimary = Color(0xFF3B82F6);
+  static const Color buttonSecondary = Color(0xFF3B82F6);
+  static const Color buttonDanger = Color(0xFFEF4444);
+}

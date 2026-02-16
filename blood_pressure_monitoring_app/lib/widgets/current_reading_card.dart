@@ -6,8 +6,6 @@ import '../controllers/blood_pressure_controller.dart';
 import '../models/blood_pressure_reading.dart';
 import '../utils/blood_pressure_status.dart';
 
-/// Widget displaying current blood pressure reading
-/// Follows SRP - Only responsible for displaying current BP data
 class CurrentReadingCard extends StatelessWidget {
   const CurrentReadingCard({super.key});
 
@@ -18,83 +16,65 @@ class CurrentReadingCard extends StatelessWidget {
         final reading = controller.currentReading;
 
         if (controller.isLoading && reading == null) {
-          return _buildLoadingState();
+          return _buildShell(context, child: const Center(child: CircularProgressIndicator()));
         }
 
         if (reading == null) {
-          return _buildNoDataState();
+          return _buildShell(context,
+              child: Center(
+                child: Text('No data available',
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: AppColors.textSecondary(context))),
+              ));
         }
 
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.cardBorder, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+        return _buildShell(
+          context,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Card Title
               Row(
                 children: [
                   const Icon(Icons.favorite, color: AppColors.danger, size: 24),
                   const SizedBox(width: 8),
-                  Text('Current Reading', style: AppTextStyles.heading3),
+                  Text('Current Reading',
+                      style: AppTextStyles.heading3
+                          .copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 ],
               ),
-
               const SizedBox(height: 24),
-
-              // BP Values Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Systolic
-                  _buildBPValue(
-                    value: reading.systolic,
-                    label: 'Systolic',
-                    color: AppColors.systolic,
-                  ),
-
-                  // Vertical Divider
-                  Container(height: 80, width: 2, color: AppColors.divider),
-
-                  // Diastolic
-                  _buildBPValue(
-                    value: reading.diastolic,
-                    label: 'Diastolic',
-                    color: AppColors.diastolic,
-                  ),
+                  _buildBPValue(context,
+                      value: reading.systolic,
+                      label: 'Systolic',
+                      color: AppColors.systolic),
+                  Container(
+                      height: 80,
+                      width: 1,
+                      color: AppColors.divider(context)),
+                  _buildBPValue(context,
+                      value: reading.diastolic,
+                      label: 'Diastolic',
+                      color: AppColors.diastolic),
                 ],
               ),
-
               const SizedBox(height: 24),
-
-              // Heart Rate
               Center(
                 child: Column(
                   children: [
-                    Text(
-                      '${reading.heartRate}',
-                      style: AppTextStyles.heartRateValue,
-                    ),
+                    Text('${reading.heartRate}',
+                        style: AppTextStyles.heartRateValue
+                            .copyWith(color: AppColors.heartRate)),
                     const SizedBox(height: 4),
-                    Text('Heart Rate (BPM)', style: AppTextStyles.bpLabel),
+                    Text('Heart Rate (BPM)',
+                        style: AppTextStyles.bpLabel
+                            .copyWith(color: AppColors.textSecondary(context))),
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Status Badge
               Center(child: _buildStatusBadge(reading.status)),
             ],
           ),
@@ -103,16 +83,34 @@ class CurrentReadingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBPValue({
-    required int value,
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildShell(BuildContext context, {required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder(context)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(context),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildBPValue(BuildContext context,
+      {required int value, required String label, required Color color}) {
     return Column(
       children: [
         Text('$value', style: AppTextStyles.bpValue.copyWith(color: color)),
         const SizedBox(height: 4),
-        Text(label, style: AppTextStyles.bpLabel),
+        Text(label,
+            style: AppTextStyles.bpLabel
+                .copyWith(color: AppColors.textSecondary(context))),
       ],
     );
   }
@@ -153,37 +151,6 @@ class CurrentReadingCard extends StatelessWidget {
       child: Text(
         BloodPressureStatusUtil.getSimpleStatus(status),
         style: textStyle,
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Container(
-      padding: const EdgeInsets.all(48),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 2),
-      ),
-      child: const Center(child: CircularProgressIndicator()),
-    );
-  }
-
-  Widget _buildNoDataState() {
-    return Container(
-      padding: const EdgeInsets.all(48),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 2),
-      ),
-      child: Center(
-        child: Text(
-          'No data available',
-          style: AppTextStyles.bodyLarge.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
       ),
     );
   }

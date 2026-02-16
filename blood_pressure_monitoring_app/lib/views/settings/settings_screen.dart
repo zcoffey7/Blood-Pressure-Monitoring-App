@@ -4,9 +4,8 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../services/notification_service.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/theme_controller.dart';
 
-/// Settings screen for app configuration
-/// Follows SRP - Only responsible for displaying settings
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -26,10 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkNotificationStatus() async {
-    // Check both permissions and if reminder is actually scheduled
     final hasPermissions = await _notificationService.areNotificationsEnabled();
     final isScheduled = await _notificationService.isDailyReminderScheduled();
-    
     setState(() {
       _notificationsEnabled = hasPermissions && isScheduled;
       _isLoading = false;
@@ -38,36 +35,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Settings', style: AppTextStyles.heading1),
+              Text('Settings',
+                  style: AppTextStyles.heading1
+                      .copyWith(color: colorScheme.onSurface)),
               const SizedBox(height: 24),
 
-              // Account Section
+              // ── Appearance ────────────────────────────────
+              _buildSectionCard(
+                context,
+                title: 'Appearance',
+                icon: Icons.palette_rounded,
+                children: [
+                  Consumer<ThemeController>(
+                    builder: (context, themeCtrl, _) {
+                      return _buildSettingTile(
+                        context,
+                        icon: Icons.dark_mode_rounded,
+                        title: 'Dark Mode',
+                        subtitle: themeCtrl.isDarkMode
+                            ? 'Dark theme active'
+                            : 'Light theme active',
+                        trailing: Switch.adaptive(
+                          value: themeCtrl.isDarkMode,
+                          onChanged: (_) => themeCtrl.toggleTheme(),
+                          activeColor: AppColors.primary,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ── Account ───────────────────────────────────
               Consumer<AuthController>(
                 builder: (context, authController, child) {
                   return _buildSectionCard(
+                    context,
                     title: 'Account',
                     icon: Icons.person_rounded,
                     children: [
-                      _buildSettingTile(
-                        icon: Icons.email,
-                        title: 'Email',
-                        subtitle: authController.userEmail ?? 'Not available',
-                      ),
-                      const Divider(),
-                      _buildSettingTile(
-                        icon: Icons.badge,
-                        title: 'Display Name',
-                        subtitle: authController.userDisplayName ?? 'Not set',
-                      ),
-                      const Divider(),
+                      _buildSettingTile(context,
+                          icon: Icons.email,
+                          title: 'Email',
+                          subtitle:
+                              authController.userEmail ?? 'Not available'),
+                      Divider(color: AppColors.divider(context)),
+                      _buildSettingTile(context,
+                          icon: Icons.badge,
+                          title: 'Display Name',
+                          subtitle:
+                              authController.userDisplayName ?? 'Not set'),
+                      Divider(color: AppColors.divider(context)),
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: ElevatedButton.icon(
@@ -75,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: const Icon(Icons.logout, size: 24),
                           label: const Text('Sign Out'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.danger,
+                            backgroundColor: AppColors.buttonDanger,
                             minimumSize: const Size.fromHeight(50),
                           ),
                         ),
@@ -84,34 +112,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
-
               const SizedBox(height: 16),
 
-              // Notifications Section
+              // ── Notifications ─────────────────────────────
               _buildSectionCard(
+                context,
                 title: 'Notifications',
                 icon: Icons.notifications_rounded,
                 children: [
                   if (_isLoading)
                     const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
+                        child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator()))
                   else ...[
+                    _buildSettingTile(context,
+                        icon: Icons.alarm,
+                        title: 'Daily Reminder',
+                        subtitle: '7:00 PM daily check-in',
+                        trailing: Switch.adaptive(
+                          value: _notificationsEnabled,
+                          onChanged: (v) => _toggleNotifications(v),
+                          activeColor: AppColors.primary,
+                        )),
+                    Divider(color: AppColors.divider(context)),
                     _buildSettingTile(
-                      icon: Icons.alarm,
-                      title: 'Daily Reminder',
-                      subtitle: '7:00 PM daily check-in',
-                      trailing: Switch(
-                        value: _notificationsEnabled,
-                        onChanged: (value) => _toggleNotifications(value),
-                        activeTrackColor: AppColors.normal,
-                      ),
-                    ),
-                    const Divider(),
-                    _buildSettingTile(
+                      context,
                       icon: Icons.info_outline,
                       title: 'Notification Status',
                       subtitle: _notificationsEnabled
@@ -123,32 +149,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             : Icons.cancel,
                         color: _notificationsEnabled
                             ? AppColors.normal
-                            : AppColors.textSecondary,
+                            : AppColors.textSecondary(context),
                         size: 28,
                       ),
                     ),
                   ],
                 ],
               ),
-
               const SizedBox(height: 16),
 
-              // About Section
+              // ── About ─────────────────────────────────────
               _buildSectionCard(
+                context,
                 title: 'About',
                 icon: Icons.info_rounded,
                 children: [
-                  _buildSettingTile(
-                    icon: Icons.medical_services,
-                    title: 'App Name',
-                    subtitle: 'Blood Pressure Monitor',
-                  ),
-                  const Divider(),
-                  _buildSettingTile(
-                    icon: Icons.numbers,
-                    title: 'Version',
-                    subtitle: '1.0.0',
-                  ),
+                  _buildSettingTile(context,
+                      icon: Icons.medical_services,
+                      title: 'App Name',
+                      subtitle: 'Blood Pressure Monitor'),
+                  Divider(color: AppColors.divider(context)),
+                  _buildSettingTile(context,
+                      icon: Icons.numbers,
+                      title: 'Version',
+                      subtitle: '1.0.0'),
                 ],
               ),
             ],
@@ -158,7 +182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionCard({
+  Widget _buildSectionCard(
+    BuildContext context, {
     required String title,
     required IconData icon,
     required List<Widget> children,
@@ -166,14 +191,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 2),
+        border: Border.all(color: AppColors.cardBorder(context)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: AppColors.shadow(context),
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -184,7 +209,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Icon(icon, color: AppColors.primary, size: 28),
               const SizedBox(width: 12),
-              Text(title, style: AppTextStyles.heading3),
+              Text(title,
+                  style: AppTextStyles.heading3.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface)),
             ],
           ),
           const SizedBox(height: 16),
@@ -194,7 +221,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingTile({
+  Widget _buildSettingTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -204,32 +232,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 24),
+          Icon(icon, color: AppColors.textSecondary(context), size: 24),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(title,
+                    style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface)),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                Text(subtitle,
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.textSecondary(context))),
               ],
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 16),
-            trailing,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 16), trailing],
         ],
       ),
     );
@@ -237,109 +257,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _toggleNotifications(bool enable) async {
     if (enable) {
-      // Request permissions
       final granted = await _notificationService.requestPermissions();
       if (granted) {
         await _notificationService.scheduleDailyCheckInReminder();
-        setState(() {
-          _notificationsEnabled = true;
-        });
-
+        setState(() => _notificationsEnabled = true);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Daily reminder set for 7:00 PM',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: AppColors.normal,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Daily reminder set for 7:00 PM'),
+            backgroundColor: AppColors.normal,
+            behavior: SnackBarBehavior.floating,
+          ));
         }
-      } else {
-        // Permissions denied
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Please enable notifications in system settings',
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-              ),
-              backgroundColor: AppColors.warning,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              const Text('Please enable notifications in system settings'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } else {
-      // Disable notifications
       await _notificationService.cancelDailyCheckInReminder();
-      setState(() {
-        _notificationsEnabled = false;
-      });
-
+      setState(() => _notificationsEnabled = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.notifications_off, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Daily reminder disabled',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.info,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Daily reminder disabled'),
+          backgroundColor: AppColors.info,
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     }
   }
 
   Future<void> _handleSignOut(BuildContext context) async {
-    // Show confirmation dialog
     final shouldSignOut = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Sign Out',
-          style: AppTextStyles.heading3,
-        ),
-        content: Text(
-          'Are you sure you want to sign out?',
-          style: AppTextStyles.bodyLarge,
-        ),
+      builder: (ctx) => AlertDialog(
+        title: Text('Sign Out', style: AppTextStyles.heading3),
+        content:
+            Text('Are you sure you want to sign out?', style: AppTextStyles.bodyLarge),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.bodyLarge,
-            ),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: AppTextStyles.bodyLarge)),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-            ),
+                backgroundColor: AppColors.buttonDanger),
             child: const Text('Sign Out'),
           ),
         ],
@@ -348,28 +312,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (shouldSignOut == true) {
       if (!mounted) return;
-      
-      // Capture BuildContext-dependent objects before async call
-      // ignore: use_build_context_synchronously
       final messenger = ScaffoldMessenger.of(context);
-      // ignore: use_build_context_synchronously
-      final authController = Provider.of<AuthController>(context, listen: false);
-      
+      final authController =
+          Provider.of<AuthController>(context, listen: false);
       await authController.signOut();
-
       if (!mounted) return;
-      
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Successfully signed out',
-            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-          ),
-          backgroundColor: AppColors.info,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      messenger.showSnackBar(SnackBar(
+        content: const Text('Successfully signed out'),
+        backgroundColor: AppColors.info,
+        behavior: SnackBarBehavior.floating,
+      ));
     }
   }
 }
-

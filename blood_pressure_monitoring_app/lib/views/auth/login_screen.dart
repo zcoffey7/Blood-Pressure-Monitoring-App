@@ -6,7 +6,6 @@ import '../../constants/app_text_styles.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
-/// Login screen for user authentication
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,9 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final authController = context.read<AuthController>();
     final success = await authController.signIn(
@@ -40,17 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (success) {
-      // Logged in successfully - AuthWrapper will automatically navigate to MainNavigation
-      // No need to show a message, just let the navigation happen
-    } else if (authController.error != null) {
-      // Show error message
+    if (!success && authController.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            authController.error!,
-            style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
-          ),
+          content: Text(authController.error!),
           backgroundColor: AppColors.danger,
           duration: const Duration(seconds: 4),
         ),
@@ -60,8 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -72,68 +63,42 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Logo/Icon
-                  Icon(
-                    Icons.favorite,
-                    size: 80,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.favorite, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
-
-                  // Title
-                  Text(
-                    'BP Monitor',
-                    style: AppTextStyles.heading1.copyWith(
-                      color: AppColors.primary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('BP Monitor',
+                      style: AppTextStyles.heading1
+                          .copyWith(color: AppColors.primary),
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 8),
-                  Text(
-                    'Sign in to continue',
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('Sign in to continue',
+                      style: AppTextStyles.bodyLarge
+                          .copyWith(color: AppColors.textSecondary(context)),
+                      textAlign: TextAlign.center),
                   const SizedBox(height: 48),
-
-                  // Email field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     autocorrect: false,
-                    style: AppTextStyles.bodyLarge,
-                    decoration: InputDecoration(
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: colorScheme.onSurface),
+                    decoration: const InputDecoration(
                       labelText: 'Email',
-                      labelStyle: AppTextStyles.bodyLarge,
-                      prefixIcon: const Icon(Icons.email, size: 28),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.cardBackground,
+                      prefixIcon: Icon(Icons.email, size: 28),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Please enter your email';
+                      if (!v.contains('@')) return 'Please enter a valid email';
                       return null;
                     },
                   ),
                   const SizedBox(height: 20),
-
-                  // Password field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: AppTextStyles.bodyLarge,
+                    style: AppTextStyles.bodyLarge
+                        .copyWith(color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: AppTextStyles.bodyLarge,
                       prefixIcon: const Icon(Icons.lock, size: 28),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -142,100 +107,65 @@ class _LoginScreenState extends State<LoginScreen> {
                               : Icons.visibility_off,
                           size: 28,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.cardBackground,
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      if (value.length < 6) {
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Please enter your password';
+                      if (v.length < 6)
                         return 'Password must be at least 6 characters';
-                      }
                       return null;
                     },
                   ),
                   const SizedBox(height: 12),
-
-                  // Forgot password
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: Text(
-                        'Forgot Password?',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
+                              builder: (_) => const ForgotPasswordScreen())),
+                      child: Text('Forgot Password?',
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: AppColors.primary)),
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Login button
                   Consumer<AuthController>(
-                    builder: (context, authController, child) {
+                    builder: (context, auth, _) {
                       return ElevatedButton(
-                        onPressed: authController.isLoading ? null : _handleLogin,
+                        onPressed: auth.isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           minimumSize: const Size.fromHeight(60),
                         ),
-                        child: authController.isLoading
+                        child: auth.isLoading
                             ? const SizedBox(
                                 height: 24,
                                 width: 24,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  color: Colors.white,
-                                ),
-                              )
+                                    strokeWidth: 3, color: Colors.white))
                             : const Text('Sign In'),
                       );
                     },
                   ),
                   const SizedBox(height: 24),
-
-                  // Sign up link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Don\'t have an account? ',
-                        style: AppTextStyles.bodyMedium,
-                      ),
+                      Text("Don't have an account? ",
+                          style: AppTextStyles.bodyMedium
+                              .copyWith(color: colorScheme.onSurface)),
                       TextButton(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SignUpScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Sign Up',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                                builder: (_) => const SignUpScreen())),
+                        child: Text('Sign Up',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -248,4 +178,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

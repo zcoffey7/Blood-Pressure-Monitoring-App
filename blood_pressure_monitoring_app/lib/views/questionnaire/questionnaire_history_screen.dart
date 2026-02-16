@@ -7,22 +7,20 @@ import '../../controllers/questionnaire_controller.dart';
 import '../../models/questionnaire_response.dart';
 import 'questionnaire_screen.dart';
 
-/// Screen displaying history of completed questionnaires
-/// Follows SRP - Only responsible for displaying questionnaire history
 class QuestionnaireHistoryScreen extends StatefulWidget {
   const QuestionnaireHistoryScreen({super.key});
 
   @override
-  State<QuestionnaireHistoryScreen> createState() => _QuestionnaireHistoryScreenState();
+  State<QuestionnaireHistoryScreen> createState() =>
+      _QuestionnaireHistoryScreenState();
 }
 
-class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen> {
+class _QuestionnaireHistoryScreenState
+    extends State<QuestionnaireHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadHistory();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
   }
 
   Future<void> _loadHistory() async {
@@ -32,35 +30,28 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Health Check-Ins'),
-      ),
+      appBar: AppBar(title: const Text('Health Check-Ins')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _startNewQuestionnaire(context),
-        backgroundColor: AppColors.normal,
-        icon: const Icon(Icons.add, size: 28),
-        label: Text(
-          'New Check-In',
-          style: AppTextStyles.bodyLarge.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, size: 28, color: Colors.white),
+        label: Text('New Check-In',
+            style: AppTextStyles.bodyLarge
+                .copyWith(color: Colors.white, fontWeight: FontWeight.w600)),
       ),
       body: Consumer<QuestionnaireController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (controller.error != null) {
             return _buildErrorState(controller.error!);
           }
-
           if (controller.responseHistory.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
 
           return RefreshIndicator(
@@ -68,18 +59,13 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
             color: AppColors.primary,
             child: Column(
               children: [
-                // Statistics Card
-                _buildStatisticsCard(controller),
-                
-                // Response List
+                _buildStatisticsCard(context, controller),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: controller.responseHistory.length,
-                    itemBuilder: (context, index) {
-                      final response = controller.responseHistory[index];
-                      return _buildResponseCard(response, controller);
-                    },
+                    itemBuilder: (ctx, i) =>
+                        _buildResponseCard(context, controller.responseHistory[i], controller),
                   ),
                 ),
               ],
@@ -90,50 +76,40 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
     );
   }
 
-  Widget _buildStatisticsCard(QuestionnaireController controller) {
+  Widget _buildStatisticsCard(
+      BuildContext context, QuestionnaireController controller) {
     final stats = controller.getResponseStatistics();
-    
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary, width: 2),
+        border: Border.all(color: AppColors.cardBorder(context)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
+            color: AppColors.shadow(context),
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          Text('Your Progress', style: AppTextStyles.heading3),
+          Text('Your Progress',
+              style: AppTextStyles.heading3
+                  .copyWith(color: Theme.of(context).colorScheme.onSurface)),
           const SizedBox(height: 16),
-          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem(
-                label: 'Total',
-                value: '${stats['total']}',
-                icon: Icons.list_alt,
-                color: AppColors.info,
-              ),
-              _buildStatItem(
-                label: 'This Week',
-                value: '${stats['thisWeek']}',
-                icon: Icons.calendar_today,
-                color: AppColors.normal,
-              ),
-              _buildStatItem(
-                label: 'This Month',
-                value: '${stats['thisMonth']}',
-                icon: Icons.trending_up,
-                color: AppColors.primary,
-              ),
+              _buildStatItem('Total', '${stats['total']}', Icons.list_alt,
+                  AppColors.info),
+              _buildStatItem('This Week', '${stats['thisWeek']}',
+                  Icons.calendar_today, AppColors.normal),
+              _buildStatItem('This Month', '${stats['thisMonth']}',
+                  Icons.trending_up, AppColors.primary),
             ],
           ),
         ],
@@ -141,57 +117,42 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
     );
   }
 
-  Widget _buildStatItem({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Icon(icon, color: color, size: 32),
         const SizedBox(height: 8),
-        Text(
-          value,
-          style: AppTextStyles.heading2.copyWith(color: color),
-        ),
+        Text(value, style: AppTextStyles.heading2.copyWith(color: color)),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
+        Text(label, style: AppTextStyles.bodySmall),
       ],
     );
   }
 
-  Widget _buildResponseCard(
-    QuestionnaireResponse response,
-    QuestionnaireController controller,
-  ) {
+  Widget _buildResponseCard(BuildContext context,
+      QuestionnaireResponse response, QuestionnaireController controller) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: response.isComplete ? AppColors.normal : AppColors.warning,
-          width: 2,
+          width: 1.5,
         ),
       ),
       child: InkWell(
         onTap: () => _viewResponse(response),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row
               Row(
                 children: [
                   Icon(
@@ -218,12 +179,9 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          dateFormat.format(response.startedAt),
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                        Text(dateFormat.format(response.startedAt),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary(context))),
                       ],
                     ),
                   ),
@@ -235,45 +193,25 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
                   ),
                 ],
               ),
-              
               const SizedBox(height: 12),
-              const Divider(),
+              Divider(color: AppColors.divider(context)),
               const SizedBox(height: 12),
-              
-              // Details
               Row(
                 children: [
                   Expanded(
-                    child: _buildDetailItem(
-                      icon: Icons.access_time,
-                      label: 'Started',
-                      value: timeFormat.format(response.startedAt),
-                    ),
+                    child: _buildDetailItem(context, Icons.access_time,
+                        'Started', timeFormat.format(response.startedAt)),
                   ),
                   if (response.completedAt != null)
                     Expanded(
-                      child: _buildDetailItem(
-                        icon: Icons.check,
-                        label: 'Completed',
-                        value: timeFormat.format(response.completedAt!),
-                      ),
+                      child: _buildDetailItem(context, Icons.check, 'Completed',
+                          timeFormat.format(response.completedAt!)),
                     ),
                 ],
               ),
-              
               const SizedBox(height: 8),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDetailItem(
-                      icon: Icons.question_answer,
-                      label: 'Questions Answered',
-                      value: '${response.answers.length}',
-                    ),
-                  ),
-                ],
-              ),
+              _buildDetailItem(context, Icons.question_answer,
+                  'Questions Answered', '${response.answers.length}'),
             ],
           ),
         ),
@@ -281,30 +219,22 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
     );
   }
 
-  Widget _buildDetailItem({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+  Widget _buildDetailItem(
+      BuildContext context, IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.textSecondary),
+        Icon(icon, size: 20, color: AppColors.textSecondary(context)),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            Text(
-              value,
-              style: AppTextStyles.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(label,
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary(context))),
+            Text(value,
+                style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface)),
           ],
         ),
       ],
@@ -314,7 +244,7 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
   void _viewResponse(QuestionnaireResponse response) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Response Details'),
         content: SingleChildScrollView(
           child: Column(
@@ -324,63 +254,49 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
               Text('Status: ${response.isComplete ? "Completed" : "Draft"}'),
               const SizedBox(height: 8),
               Text(
-                'Started: ${DateFormat('MMM d, yyyy - h:mm a').format(response.startedAt)}',
-              ),
+                  'Started: ${DateFormat('MMM d, yyyy - h:mm a').format(response.startedAt)}'),
               if (response.completedAt != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Completed: ${DateFormat('MMM d, yyyy - h:mm a').format(response.completedAt!)}',
-                ),
+                    'Completed: ${DateFormat('MMM d, yyyy - h:mm a').format(response.completedAt!)}'),
               ],
               const SizedBox(height: 16),
-              Text(
-                'Answers: ${response.answers.length}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
+              Text('Answers: ${response.answers.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              ...response.answers.map((answer) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '• ${answer.questionId}: ${answer.value}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                );
-              }),
+              ...response.answers.map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text('• ${a.questionId}: ${a.value}',
+                        style: AppTextStyles.bodySmall),
+                  )),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close')),
         ],
       ),
     );
   }
 
   Future<void> _confirmDelete(
-    QuestionnaireResponse response,
-    QuestionnaireController controller,
-  ) async {
+      QuestionnaireResponse response, QuestionnaireController controller) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Delete Response?'),
         content: const Text(
-          'This action cannot be undone. Are you sure you want to delete this questionnaire response?',
-        ),
+            'This action cannot be undone. Are you sure you want to delete this questionnaire response?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-            ),
+                backgroundColor: AppColors.buttonDanger),
             child: const Text('Delete'),
           ),
         ],
@@ -389,47 +305,32 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
 
     if (confirmed == true && mounted) {
       await controller.deleteResponse(response.id);
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Response deleted',
-              style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-            ),
-            backgroundColor: AppColors.info,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Response deleted'),
+          backgroundColor: AppColors.info,
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     }
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: 80,
-              color: AppColors.textHint,
-            ),
+            Icon(Icons.assignment_outlined,
+                size: 80, color: AppColors.textHint(context)),
             const SizedBox(height: 16),
-            Text(
-              'No Responses Yet',
-              style: AppTextStyles.heading2,
-            ),
+            Text('No Responses Yet', style: AppTextStyles.heading2),
             const SizedBox(height: 8),
-            Text(
-              'Complete a questionnaire to see your history here.',
-              style: AppTextStyles.bodyLarge.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text('Complete a questionnaire to see your history here.',
+                style: AppTextStyles.bodyLarge
+                    .copyWith(color: AppColors.textSecondary(context)),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -443,47 +344,27 @@ class _QuestionnaireHistoryScreenState extends State<QuestionnaireHistoryScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.danger,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: AppColors.danger),
             const SizedBox(height: 16),
-            Text(
-              'Error',
-              style: AppTextStyles.heading2,
-            ),
+            Text('Error', style: AppTextStyles.heading2),
             const SizedBox(height: 8),
-            Text(
-              error,
-              style: AppTextStyles.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
+            Text(error,
+                style: AppTextStyles.bodyLarge, textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _loadHistory,
-              child: const Text('Retry'),
-            ),
+                onPressed: _loadHistory, child: const Text('Retry')),
           ],
         ),
       ),
     );
   }
 
-  /// Start new questionnaire
   Future<void> _startNewQuestionnaire(BuildContext context) async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const QuestionnaireScreen(
-          templateId: 'orthostatic_assessment',
-        ),
-      ),
+          builder: (_) =>
+              const QuestionnaireScreen(templateId: 'orthostatic_assessment')),
     );
-
-    // If questionnaire was completed, refresh history
-    if (result == true && mounted) {
-      await _loadHistory();
-    }
+    if (result == true && mounted) await _loadHistory();
   }
 }
-
