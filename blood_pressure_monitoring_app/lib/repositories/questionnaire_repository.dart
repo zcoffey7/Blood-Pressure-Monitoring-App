@@ -52,62 +52,107 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
     _initializeMockTemplates();
   }
 
-  /// Initialize with the orthostatic hypotension questionnaire template
+  /// Initialize with the three health tracker templates
   void _initializeMockTemplates() {
-    final orthostaticTemplate = QuestionnaireTemplate(
-      id: 'orthostatic_assessment',
-      title: 'Orthostatic Blood Pressure Assessment',
-      description: 'Complete assessment for monitoring orthostatic hypotension',
+    // 1. Symptom Tracker — all questions optional
+    final symptomTracker = QuestionnaireTemplate(
+      id: 'symptom_tracker',
+      title: 'Symptom Tracker',
+      description: 'Track your daily symptoms quickly',
       createdAt: DateTime.now(),
       questions: [
-        // Today's date and time
         const Question(
           id: 'assessment_date',
           text: "Today's Date and Time",
           type: QuestionType.dateTime,
+          required: false,
+        ),
+        const Question(
+          id: 'postural_symptoms',
+          text:
+              'Postural symptoms: Rate how severe the following symptoms were when upright (standing/sitting): dizziness, lightheadedness, feeling faint, vision problems, weakness, fatigue, trouble concentrating, neck/shoulder pain, nausea (0 = None, 10 = Worst possible).',
+          type: QuestionType.scale,
+          required: false,
+          minValue: 0,
+          maxValue: 10,
+        ),
+        Question(
+          id: 'fatigue_level',
+          text: 'Current fatigue level: Rate your current level of fatigue.',
+          type: QuestionType.ratingWithLabels,
+          required: false,
+          minValue: 1,
+          maxValue: 7,
+          ratingLabels: {
+            1: 'Fully Alert, wide awake',
+            2: 'Very lively, responsive, but not at peak',
+            3: 'Okay, somewhat fresh',
+            4: 'A little tired, less than fresh',
+            5: 'Moderately tired, let down',
+            6: 'Extremely tired, very difficult to concentrate',
+            7: 'Completely exhausted, unable to function effectively',
+          },
+        ),
+        const Question(
+          id: 'other_symptoms',
+          text: 'Other symptoms',
+          type: QuestionType.textInput,
+          required: false,
+          placeholder: 'Describe any other symptoms...',
+        ),
+        const Question(
+          id: 'last_meal_time',
+          text: 'Last Meal Time',
+          type: QuestionType.dateTime,
+          required: false,
+        ),
+      ],
+    );
+
+    // 2. Sleep Tracker — most questions required
+    final sleepTracker = QuestionnaireTemplate(
+      id: 'sleep_tracker',
+      title: 'Sleep Tracker',
+      description: 'Track your sleep quality and patterns',
+      createdAt: DateTime.now(),
+      questions: [
+        const Question(
+          id: 'assessment_date',
+          text: "Today's Date",
+          type: QuestionType.dateTime,
           required: true,
         ),
-
-        // Yesterday's last meal time
         const Question(
           id: 'last_meal_time',
           text: "Yesterday's Last Meal Time",
           type: QuestionType.dateTime,
           required: true,
         ),
-
-        // Yesterday's bedtime
         const Question(
           id: 'bedtime',
           text: "Yesterday's Bed Time",
           type: QuestionType.dateTime,
           required: true,
         ),
-
-        // Today's wake-up time
         const Question(
           id: 'wakeup_time',
           text: "Today's Wake-up Time",
           type: QuestionType.dateTime,
           required: true,
         ),
-
-        // Sleep quality (0-10 scale)
         const Question(
           id: 'sleep_quality',
           text:
-              'Sleep quality: Assign a number on the scale that best rates the quality of your sleep last night (0 = Best possible sleep, 10 = Worst possible sleep).',
+              'Sleep quality: Rate the quality of your sleep last night (0 = Best possible sleep, 10 = Worst possible sleep).',
           type: QuestionType.scale,
           required: true,
           minValue: 0,
           maxValue: 10,
         ),
-
-        // Fatigue level before test (1-7 rating with labels)
         Question(
-          id: 'fatigue_before',
+          id: 'fatigue_score',
           text:
-              'Fatigue level before the test: Assign a number on the scale that best rates your current level of fatigue.',
+              'Fatigue within 1 hour of waking: Rate your fatigue level.',
           type: QuestionType.ratingWithLabels,
           required: true,
           minValue: 1,
@@ -122,50 +167,62 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
             7: 'Completely exhausted, unable to function effectively',
           },
         ),
-
-        // Blood pressure measurement table
         const Question(
-          id: 'bp_measurements',
-          text: 'Blood pressure assessment: Which arm?',
-          type: QuestionType.table,
-          required: true,
-          options: ['Left', 'Right'],
-        ),
-
-        // Fatigue level after test (1-7 rating with labels)
-        Question(
-          id: 'fatigue_after',
-          text:
-              'Fatigue level after the test: Assign a number on the scale that best rates your level of fatigue after finishing the blood pressure assessment.',
-          type: QuestionType.ratingWithLabels,
-          required: true,
-          minValue: 1,
-          maxValue: 7,
-          ratingLabels: {
-            1: 'Fully Alert, wide awake',
-            2: 'Very lively, responsive, but not at peak',
-            3: 'Okay, somewhat fresh',
-            4: 'A little tired, less than fresh',
-            5: 'Moderately tired, let down',
-            6: 'Extremely tired, very difficult to concentrate',
-            7: 'Completely exhausted, unable to function effectively',
-          },
-        ),
-
-        // Postural symptoms (0-10 severity scale)
-        const Question(
-          id: 'postural_symptoms',
-          text:
-              'Postural symptoms: Assign a number on the scale that best rates how severe the following symptoms were that occurred when upright (standing and/or sitting): Dizziness/lightheadedness, feeling faint or like you might blackout, vision problems (blurry, tunnel vision, diminished vision, seeing spots, etc.), weakness, fatigue, trouble concentrating, pain or discomfort in shoulders/back of neck, nausea (0 = None, 10 = Worst possible).',
-          type: QuestionType.scale,
-          required: true,
-          minValue: 0,
-          maxValue: 10,
+          id: 'notes',
+          text: 'Notes',
+          type: QuestionType.textInput,
+          required: false,
+          placeholder: 'Any additional notes...',
         ),
       ],
     );
 
-    _templates[orthostaticTemplate.id] = orthostaticTemplate;
+    // 3. Blood Pressure Tracker
+    final bpTracker = QuestionnaireTemplate(
+      id: 'bp_tracker',
+      title: 'Blood Pressure Tracker',
+      description: 'Record your blood pressure measurements',
+      createdAt: DateTime.now(),
+      questions: [
+        const Question(
+          id: 'assessment_date',
+          text: 'Date and Time',
+          type: QuestionType.dateTime,
+          required: true,
+        ),
+        const Question(
+          id: 'arm_used',
+          text: 'Which arm?',
+          type: QuestionType.multipleChoice,
+          required: true,
+          options: ['Left', 'Right'],
+        ),
+        const Question(
+          id: 'posture',
+          text: 'Posture',
+          type: QuestionType.multipleChoice,
+          required: true,
+          options: ['Lying down', 'Sitting', 'Standing'],
+        ),
+        const Question(
+          id: 'bp_measurements',
+          text: 'Blood pressure measurements',
+          type: QuestionType.table,
+          required: true,
+          options: ['Left', 'Right'],
+        ),
+        const Question(
+          id: 'notes',
+          text: 'Notes',
+          type: QuestionType.textInput,
+          required: false,
+        ),
+      ],
+    );
+
+    _templates[symptomTracker.id] = symptomTracker;
+    _templates[sleepTracker.id] = sleepTracker;
+    _templates[bpTracker.id] = bpTracker;
   }
 
   @override
