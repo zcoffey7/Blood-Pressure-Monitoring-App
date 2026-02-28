@@ -1,25 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:blood_pressure_monitoring_app/main.dart';
+import 'package:blood_pressure_monitoring_app/repositories/blood_pressure_repository.dart';
+import 'package:blood_pressure_monitoring_app/repositories/device_repository.dart';
+import 'package:blood_pressure_monitoring_app/repositories/questionnaire_repository.dart';
+import 'package:blood_pressure_monitoring_app/services/auth_service.dart';
+
+BloodPressureMonitorApp buildTestApp() {
+  return BloodPressureMonitorApp(
+    bpRepository: MockBloodPressureRepository(),
+    deviceRepository: MockDeviceRepository(),
+    questionnaireRepository: MockQuestionnaireRepository(),
+    authService: AuthService(),
+  );
+}
 
 void main() {
   testWidgets('App loads and displays home screen', (
     WidgetTester tester,
   ) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BloodPressureMonitorApp());
+    await tester.pumpWidget(buildTestApp());
 
-    // Verify that the home screen loads with "Live Monitoring" text
     expect(find.text('Live Monitoring'), findsOneWidget);
 
-    // Verify that bottom navigation is present
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Alerts'), findsOneWidget);
@@ -29,34 +32,23 @@ void main() {
   testWidgets('Bottom navigation switches screens', (
     WidgetTester tester,
   ) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BloodPressureMonitorApp());
+    await tester.pumpWidget(buildTestApp());
 
-    // Verify we start on Home screen
     expect(find.text('Live Monitoring'), findsOneWidget);
 
-    // Tap on History tab
     await tester.tap(find.text('History'));
     await tester.pumpAndSettle();
 
-    // Verify History screen is shown
-    expect(find.text('History'), findsNWidgets(2)); // One in tab, one in header
+    expect(find.text('History'), findsNWidgets(2));
 
-    // Tap on Alerts tab
     await tester.tap(find.text('Alerts'));
     await tester.pumpAndSettle();
 
-    // Verify Alerts screen is shown
-    expect(find.text('Alerts'), findsNWidgets(2)); // One in tab, one in header
+    expect(find.text('Alerts'), findsNWidgets(2));
 
-    // Tap on Settings tab
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
 
-    // Verify Settings screen is shown
-    expect(
-      find.text('Settings'),
-      findsNWidgets(2),
-    ); // One in tab, one in header
+    expect(find.text('Settings'), findsNWidgets(2));
   });
 }

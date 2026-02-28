@@ -49,6 +49,7 @@ class AuthController extends ChangeNotifier {
     required String password,
     String? displayName,
   }) async {
+    if (_isLoading) return false;
     _setLoading(true);
     _clearError();
 
@@ -76,6 +77,7 @@ class AuthController extends ChangeNotifier {
   /// Sign in with email and password
   /// Returns true on success, false on failure
   Future<bool> signIn({required String email, required String password}) async {
+    if (_isLoading) return false;
     _setLoading(true);
     _clearError();
 

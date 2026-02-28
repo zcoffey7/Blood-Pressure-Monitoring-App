@@ -29,24 +29,15 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Live Monitoring',
-                        style: AppTextStyles.heading1
-                            .copyWith(color: colorScheme.onSurface)),
-                    IconButton(
-                      icon: Icon(Icons.settings_rounded,
-                          size: 32, color: colorScheme.onSurface),
-                      onPressed: () => _showSettingsInfo(context),
-                      tooltip: 'Settings',
-                    ),
-                  ],
-                ),
+                Text('Live Monitoring',
+                    style: AppTextStyles.heading1
+                        .copyWith(color: colorScheme.onSurface)),
                 const SizedBox(height: 24),
 
                 const ConnectionStatusWidget(),
                 const SizedBox(height: 16),
+
+                _buildErrorBanner(context),
 
                 _buildCheckInCard(context),
                 const SizedBox(height: 16),
@@ -144,29 +135,44 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildErrorBanner(BuildContext context) {
+    return Consumer<BloodPressureController>(
+      builder: (context, controller, _) {
+        final error = controller.error;
+        if (error == null) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.danger),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    error,
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.danger),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleRefresh(BuildContext context) async {
     final bpController = context.read<BloodPressureController>();
     final deviceController = context.read<DeviceController>();
     await Future.wait([bpController.refresh(), deviceController.refresh()]);
-  }
-
-  void _showSettingsInfo(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.white),
-            SizedBox(width: 12),
-            Expanded(child: Text('Settings screen coming soon!')),
-          ],
-        ),
-        backgroundColor: AppColors.info,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
   }
 
   Widget _buildCheckInCard(BuildContext context) {

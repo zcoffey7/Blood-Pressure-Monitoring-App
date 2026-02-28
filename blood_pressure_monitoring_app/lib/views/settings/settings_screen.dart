@@ -25,12 +25,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkNotificationStatus() async {
-    final hasPermissions = await _notificationService.areNotificationsEnabled();
-    final isScheduled = await _notificationService.isDailyReminderScheduled();
-    setState(() {
-      _notificationsEnabled = hasPermissions && isScheduled;
-      _isLoading = false;
-    });
+    try {
+      final hasPermissions = await _notificationService.areNotificationsEnabled();
+      final isScheduled = await _notificationService.isDailyReminderScheduled();
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = hasPermissions && isScheduled;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = false;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -67,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         trailing: Switch.adaptive(
                           value: themeCtrl.isDarkMode,
                           onChanged: (_) => themeCtrl.toggleTheme(),
-                          activeColor: AppColors.primary,
+                          activeTrackColor: AppColors.primary,
                         ),
                       );
                     },
@@ -132,8 +141,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         subtitle: '7:00 PM daily check-in',
                         trailing: Switch.adaptive(
                           value: _notificationsEnabled,
-                          onChanged: (v) => _toggleNotifications(v),
-                          activeColor: AppColors.primary,
+                          onChanged: _toggleNotifications,
+                          activeTrackColor: AppColors.primary,
                         )),
                     Divider(color: AppColors.divider(context)),
                     _buildSettingTile(
@@ -256,40 +265,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _toggleNotifications(bool enable) async {
-    if (enable) {
-      final granted = await _notificationService.requestPermissions();
-      if (granted) {
-        await _notificationService.scheduleDailyCheckInReminder();
-        setState(() => _notificationsEnabled = true);
-        if (mounted) {
+    try {
+      if (enable) {
+        final granted = await _notificationService.requestPermissions();
+        if (granted) {
+          await _notificationService.scheduleDailyCheckInReminder();
+          if (!mounted) return;
+          setState(() => _notificationsEnabled = true);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('Daily reminder set for 7:00 PM'),
             backgroundColor: AppColors.normal,
             behavior: SnackBarBehavior.floating,
           ));
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                const Text('Please enable notifications in system settings'),
+            backgroundColor: AppColors.warning,
+            behavior: SnackBarBehavior.floating,
+          ));
         }
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              const Text('Please enable notifications in system settings'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-        ));
-      }
-    } else {
-      await _notificationService.cancelDailyCheckInReminder();
-      setState(() => _notificationsEnabled = false);
-      if (mounted) {
+      } else {
+        await _notificationService.cancelDailyCheckInReminder();
+        if (!mounted) return;
+        setState(() => _notificationsEnabled = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('Daily reminder disabled'),
           backgroundColor: AppColors.info,
           behavior: SnackBarBehavior.floating,
         ));
       }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Failed to update notification settings'),
+        backgroundColor: AppColors.danger,
+        behavior: SnackBarBehavior.floating,
+      ));
     }
   }
 
   Future<void> _handleSignOut(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final authController =
+        Provider.of<AuthController>(context, listen: false);
+
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -311,12 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (shouldSignOut == true) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final authController =
-          Provider.of<AuthController>(context, listen: false);
       await authController.signOut();
-      if (!mounted) return;
       messenger.showSnackBar(SnackBar(
         content: const Text('Successfully signed out'),
         backgroundColor: AppColors.info,

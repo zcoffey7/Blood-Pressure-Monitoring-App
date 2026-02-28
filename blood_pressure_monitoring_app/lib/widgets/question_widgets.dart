@@ -69,7 +69,7 @@ class _ScaleButton extends StatelessWidget {
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? AppColors.primary : AppColors.cardBackground(context),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.divider(context),
             width: 2,
@@ -155,7 +155,7 @@ class _RatingOption extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
-              : Colors.white,
+              : AppColors.cardBackground(context),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.divider(context),
             width: isSelected ? 2 : 1,
@@ -168,7 +168,7 @@ class _RatingOption extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.white,
+                color: isSelected ? AppColors.primary : AppColors.cardBackground(context),
                 border: Border.all(
                   color: isSelected ? AppColors.primary : AppColors.divider(context),
                   width: 2,
@@ -231,7 +231,7 @@ class DateTimeQuestionWidget extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.cardBackground(context),
               border: Border.all(
                 color: currentValue != null
                     ? AppColors.primary
@@ -392,7 +392,7 @@ class _TextQuestionWidgetState extends State<TextQuestionWidget> {
               color: AppColors.textHint(context),
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppColors.cardBackground(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: AppColors.divider(context), width: 2),
@@ -448,7 +448,7 @@ class MultipleChoiceQuestionWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.1)
-                      : Colors.white,
+                      : AppColors.cardBackground(context),
                   border: Border.all(
                     color: isSelected ? AppColors.primary : AppColors.divider(context),
                     width: isSelected ? 2 : 1,

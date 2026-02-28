@@ -42,7 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!mounted) return;
 
     if (success) {
-      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } else if (authController.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(authController.error!),
@@ -112,7 +112,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Please enter your email';
-                      if (!v.contains('@')) return 'Please enter a valid email';
+                      if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v)) {
+                        return 'Please enter a valid email';
+                      }
                       return null;
                     },
                   ),
