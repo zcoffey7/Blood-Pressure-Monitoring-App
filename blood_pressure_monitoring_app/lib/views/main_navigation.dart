@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'home/home_screen.dart';
-import 'history/history_screen.dart';
-import 'alerts/alerts_screen.dart';
 import 'questionnaire/questionnaire_history_screen.dart';
+import 'alerts/alerts_screen.dart';
 import 'settings/settings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -18,9 +17,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    HistoryScreen(),
-    AlertsScreen(),
     QuestionnaireHistoryScreen(),
+    AlertsScreen(),
     SettingsScreen(),
   ];
 
@@ -43,8 +41,6 @@ class _MainNavigationState extends State<MainNavigation> {
               icon: Icon(Icons.history_rounded), label: 'History'),
           NavigationDestination(
               icon: Icon(Icons.notifications_rounded), label: 'Alerts'),
-          NavigationDestination(
-              icon: Icon(Icons.assignment_rounded), label: 'Check-In'),
           NavigationDestination(
               icon: Icon(Icons.settings_rounded), label: 'Settings'),
         ],

@@ -48,7 +48,41 @@ class HomeScreen extends StatelessWidget {
                 const ConnectionStatusWidget(),
                 const SizedBox(height: 16),
 
-                _buildCheckInCard(context),
+                // Symptom Tracker — full-width, highest priority
+                _buildTrackerCard(
+                  context,
+                  templateId: 'symptom_tracker',
+                  title: 'Symptom Tracker',
+                  subtitle: 'Log your daily symptoms',
+                  icon: Icons.assignment_rounded,
+                  gradientColors: [const Color(0xFF43A047), const Color(0xFF66BB6A)],
+                ),
+                const SizedBox(height: 12),
+
+                // Sleep + BP side by side
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSmallTrackerCard(
+                        context,
+                        templateId: 'sleep_tracker',
+                        title: 'Sleep',
+                        icon: Icons.bedtime_rounded,
+                        gradientColors: [const Color(0xFF5C6BC0), const Color(0xFF7986CB)],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildSmallTrackerCard(
+                        context,
+                        templateId: 'bp_tracker',
+                        title: 'Blood Pressure',
+                        icon: Icons.monitor_heart_rounded,
+                        gradientColors: [const Color(0xFFE53935), const Color(0xFFEF5350)],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
 
                 // ── Vital Chips ───────────────────────────────
@@ -66,6 +100,117 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrackerCard(
+    BuildContext context, {
+    required String templateId,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradientColors,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark
+        ? gradientColors.map((c) => Color.lerp(c, Colors.black, 0.25)!).toList()
+        : gradientColors;
+
+    return InkWell(
+      onTap: () => _openTracker(context, templateId),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withValues(alpha: 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 40, color: Colors.white),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTextStyles.heading3
+                          .copyWith(color: Colors.white)),
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9))),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallTrackerCard(
+    BuildContext context, {
+    required String templateId,
+    required String title,
+    required IconData icon,
+    required List<Color> gradientColors,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark
+        ? gradientColors.map((c) => Color.lerp(c, Colors.black, 0.25)!).toList()
+        : gradientColors;
+
+    return InkWell(
+      onTap: () => _openTracker(context, templateId),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: colors.first.withValues(alpha: 0.25),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(title,
+                style: AppTextStyles.bodyLarge.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center),
+          ],
         ),
       ),
     );
@@ -169,67 +314,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCheckInCard(BuildContext context) {
-    return InkWell(
-      onTap: () => _startQuestionnaire(context),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: Theme.of(context).brightness == Brightness.light
-                ? [AppColors.primary, AppColors.primary.withValues(alpha: 0.75)]
-                : [AppColors.primaryDark, AppColors.primary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.assignment_rounded,
-                  size: 40, color: Colors.white),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Daily Health Check-In',
-                      style: AppTextStyles.heading3
-                          .copyWith(color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Text('Tap to record your symptoms',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9))),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _startQuestionnaire(BuildContext context) async {
+  Future<void> _openTracker(BuildContext context, String templateId) async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) =>
-            const QuestionnaireScreen(templateId: 'orthostatic_assessment'),
+            QuestionnaireScreen(templateId: templateId),
       ),
     );
 

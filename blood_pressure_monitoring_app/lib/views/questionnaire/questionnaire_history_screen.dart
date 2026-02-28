@@ -16,11 +16,29 @@ class QuestionnaireHistoryScreen extends StatefulWidget {
 }
 
 class _QuestionnaireHistoryScreenState
-    extends State<QuestionnaireHistoryScreen> {
+    extends State<QuestionnaireHistoryScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  static const _tabs = [
+    _FilterTab('All', null, Icons.list_alt),
+    _FilterTab('Symptom', 'symptom_tracker', Icons.assignment_rounded),
+    _FilterTab('Sleep', 'sleep_tracker', Icons.bedtime_rounded),
+    _FilterTab('BP', 'bp_tracker', Icons.monitor_heart_rounded),
+  ];
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadHistory() async {
@@ -28,14 +46,31 @@ class _QuestionnaireHistoryScreenState
     await controller.loadResponseHistory();
   }
 
+  List<QuestionnaireResponse> _filteredResponses(
+      List<QuestionnaireResponse> all) {
+    final templateId = _tabs[_tabController.index].templateId;
+    if (templateId == null) return all;
+    return all.where((r) => r.templateId == templateId).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Health Check-Ins')),
+      appBar: AppBar(
+        title: const Text('Health Check-Ins'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: false,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          tabs: _tabs
+              .map((t) => Tab(icon: Icon(t.icon, size: 22), text: t.label))
+              .toList(),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startNewQuestionnaire(context),
+        onPressed: () => _showTrackerPicker(context),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, size: 28, color: Colors.white),
         label: Text('New Check-In',
@@ -50,7 +85,10 @@ class _QuestionnaireHistoryScreenState
           if (controller.error != null) {
             return _buildErrorState(controller.error!);
           }
-          if (controller.responseHistory.isEmpty) {
+
+          final filtered = _filteredResponses(controller.responseHistory);
+
+          if (filtered.isEmpty) {
             return _buildEmptyState(context);
           }
 
@@ -63,15 +101,75 @@ class _QuestionnaireHistoryScreenState
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: controller.responseHistory.length,
+                    itemCount: filtered.length,
                     itemBuilder: (ctx, i) =>
-                        _buildResponseCard(context, controller.responseHistory[i], controller),
+                        _buildResponseCard(context, filtered[i], controller),
                   ),
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  IconData _iconForTemplate(String templateId) {
+    switch (templateId) {
+      case 'symptom_tracker':
+        return Icons.assignment_rounded;
+      case 'sleep_tracker':
+        return Icons.bedtime_rounded;
+      case 'bp_tracker':
+        return Icons.monitor_heart_rounded;
+      default:
+        return Icons.description;
+    }
+  }
+
+  Color _colorForTemplate(String templateId) {
+    switch (templateId) {
+      case 'symptom_tracker':
+        return const Color(0xFF43A047);
+      case 'sleep_tracker':
+        return const Color(0xFF5C6BC0);
+      case 'bp_tracker':
+        return const Color(0xFFE53935);
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  void _showTrackerPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Choose Tracker'),
+        children: [
+          _trackerOption(ctx, 'Symptom Tracker', 'symptom_tracker',
+              Icons.assignment_rounded, const Color(0xFF43A047)),
+          _trackerOption(ctx, 'Sleep Tracker', 'sleep_tracker',
+              Icons.bedtime_rounded, const Color(0xFF5C6BC0)),
+          _trackerOption(ctx, 'Blood Pressure Tracker', 'bp_tracker',
+              Icons.monitor_heart_rounded, const Color(0xFFE53935)),
+        ],
+      ),
+    );
+  }
+
+  Widget _trackerOption(BuildContext ctx, String title, String templateId,
+      IconData icon, Color color) {
+    return SimpleDialogOption(
+      onPressed: () {
+        Navigator.of(ctx).pop();
+        _startQuestionnaire(context, templateId);
+      },
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 16),
+          Text(title, style: AppTextStyles.bodyLarge),
+        ],
       ),
     );
   }
@@ -136,6 +234,8 @@ class _QuestionnaireHistoryScreenState
       QuestionnaireResponse response, QuestionnaireController controller) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final timeFormat = DateFormat('h:mm a');
+    final templateColor = _colorForTemplate(response.templateId);
+    final templateIcon = _iconForTemplate(response.templateId);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -143,7 +243,7 @@ class _QuestionnaireHistoryScreenState
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: response.isComplete ? AppColors.normal : AppColors.warning,
+          color: response.isComplete ? templateColor : AppColors.warning,
           width: 1.5,
         ),
       ),
@@ -157,15 +257,7 @@ class _QuestionnaireHistoryScreenState
             children: [
               Row(
                 children: [
-                  Icon(
-                    response.isComplete
-                        ? Icons.check_circle
-                        : Icons.pending_outlined,
-                    color: response.isComplete
-                        ? AppColors.normal
-                        : AppColors.warning,
-                    size: 28,
-                  ),
+                  Icon(templateIcon, color: templateColor, size: 28),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -176,7 +268,7 @@ class _QuestionnaireHistoryScreenState
                           style: AppTextStyles.bodyLarge.copyWith(
                             fontWeight: FontWeight.w600,
                             color: response.isComplete
-                                ? AppColors.normal
+                                ? templateColor
                                 : AppColors.warning,
                           ),
                         ),
@@ -361,12 +453,19 @@ class _QuestionnaireHistoryScreenState
     );
   }
 
-  Future<void> _startNewQuestionnaire(BuildContext context) async {
+  Future<void> _startQuestionnaire(
+      BuildContext context, String templateId) async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-          builder: (_) =>
-              const QuestionnaireScreen(templateId: 'orthostatic_assessment')),
+          builder: (_) => QuestionnaireScreen(templateId: templateId)),
     );
     if (result == true && mounted) await _loadHistory();
   }
+}
+
+class _FilterTab {
+  final String label;
+  final String? templateId;
+  final IconData icon;
+  const _FilterTab(this.label, this.templateId, this.icon);
 }

@@ -123,17 +123,22 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (question.required)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.danger.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text('REQUIRED',
-                  style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.danger, fontWeight: FontWeight.w600)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: question.required
+                  ? AppColors.danger.withValues(alpha: 0.1)
+                  : AppColors.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
             ),
+            child: Text(
+              question.required ? 'REQUIRED' : 'OPTIONAL',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: question.required ? AppColors.danger : AppColors.info,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           _buildQuestionWidget(question, controller),
           const SizedBox(height: 24),
@@ -253,6 +258,17 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
               ),
             ),
           if (!isFirst) const SizedBox(width: 16),
+          if (!currentQ.required && !hasAnswer && !isLast)
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut),
+                child: const Text('Skip'),
+              ),
+            ),
+          if (!currentQ.required && !hasAnswer && !isLast)
+            const SizedBox(width: 16),
           Expanded(
             child: ElevatedButton(
               onPressed: hasAnswer || !currentQ.required
