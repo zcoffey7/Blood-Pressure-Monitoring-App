@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -135,9 +135,10 @@ class NotificationService {
       payload: 'questionnaire', // Payload to identify notification type
     );
 
-    if (kDebugMode) {
-      print('Notification scheduled for: $scheduledDate');
-    }
+    assert(() {
+      debugPrint('Notification scheduled for: $scheduledDate');
+      return true;
+    }());
   }
 
   /// Cancel the daily check-in reminder

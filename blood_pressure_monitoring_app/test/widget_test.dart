@@ -1,62 +1,94 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 
-import 'package:blood_pressure_monitoring_app/main.dart';
+import 'package:blood_pressure_monitoring_app/views/main_navigation.dart';
+import 'package:blood_pressure_monitoring_app/controllers/blood_pressure_controller.dart';
+import 'package:blood_pressure_monitoring_app/controllers/device_controller.dart';
+import 'package:blood_pressure_monitoring_app/controllers/questionnaire_controller.dart';
+import 'package:blood_pressure_monitoring_app/controllers/theme_controller.dart';
+import 'package:blood_pressure_monitoring_app/controllers/auth_controller.dart';
+import 'package:blood_pressure_monitoring_app/repositories/device_repository.dart';
+import 'package:blood_pressure_monitoring_app/repositories/blood_pressure_repository.dart';
+import 'package:blood_pressure_monitoring_app/repositories/questionnaire_repository.dart';
+import 'package:blood_pressure_monitoring_app/services/auth_service.dart';
+
+/// Builds MainNavigation wrapped with all required providers,
+/// bypassing Firebase auth by providing mocked Firebase Core.
+Widget buildTestNavigation() {
+  final authService = AuthService();
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => ThemeController()),
+      ChangeNotifierProvider(create: (_) => AuthController(authService)),
+      ChangeNotifierProvider(
+          create: (_) => BloodPressureController(
+              MockBloodPressureRepository(),
+              enableRealtime: false)),
+      ChangeNotifierProvider(
+          create: (_) =>
+              DeviceController(MockDeviceRepository(), enableMonitoring: false)),
+      ChangeNotifierProvider(
+          create: (_) =>
+              QuestionnaireController(MockQuestionnaireRepository())),
+    ],
+    child: const MaterialApp(home: MainNavigation()),
+  );
+}
 
 void main() {
-  testWidgets('App loads and displays home screen', (
+  setUpAll(() async {
+    setupFirebaseCoreMocks();
+    await Firebase.initializeApp();
+  });
+
+  testWidgets('MainNavigation loads and displays home screen', (
     WidgetTester tester,
   ) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BloodPressureMonitorApp());
+    await tester.pumpWidget(buildTestNavigation());
+    await tester.pump();
 
-    // Verify that the home screen loads with "Live Monitoring" text
     expect(find.text('Live Monitoring'), findsOneWidget);
 
-    // Verify that bottom navigation is present
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
+
+    // Drain short-lived timers from mock repository network delay simulation
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('Bottom navigation switches screens', (
     WidgetTester tester,
   ) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const BloodPressureMonitorApp());
+    await tester.pumpWidget(buildTestNavigation());
+    await tester.pump();
 
-    // Verify we start on Home screen
     expect(find.text('Live Monitoring'), findsOneWidget);
 
-    // Tap on History tab
     await tester.tap(find.text('History'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    // Verify History screen is shown
-    expect(find.text('History'), findsNWidgets(2)); // One in tab, one in header
+    // History screen header shows "Health Check-Ins"
+    expect(find.text('Health Check-Ins'), findsOneWidget);
 
-    // Tap on Alerts tab
     await tester.tap(find.text('Alerts'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    // Verify Alerts screen is shown
-    expect(find.text('Alerts'), findsNWidgets(2)); // One in tab, one in header
+    // Alerts appears in both nav bar and screen header
+    expect(find.text('Alerts'), findsNWidgets(2));
 
-    // Tap on Settings tab
     await tester.tap(find.text('Settings'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    // Verify Settings screen is shown
-    expect(
-      find.text('Settings'),
-      findsNWidgets(2),
-    ); // One in tab, one in header
+    // Settings appears in both nav bar and screen header
+    expect(find.text('Settings'), findsNWidgets(2));
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 }

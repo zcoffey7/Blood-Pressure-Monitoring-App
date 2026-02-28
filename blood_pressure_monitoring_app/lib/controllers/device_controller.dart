@@ -13,6 +13,7 @@ class DeviceController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSyncing = false;
   String? _error;
+  bool _isDisposed = false;
   StreamSubscription<DeviceConnection>? _connectionSubscription;
 
   DeviceController(this._repository, {bool enableMonitoring = true}) {
@@ -142,7 +143,13 @@ class DeviceController extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _connectionSubscription?.cancel();
     super.dispose();
   }

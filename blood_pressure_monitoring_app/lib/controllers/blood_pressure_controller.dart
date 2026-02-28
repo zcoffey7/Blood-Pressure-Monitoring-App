@@ -14,6 +14,7 @@ class BloodPressureController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _isPaused = false;
+  bool _isDisposed = false;
   StreamSubscription<BloodPressureReading>? _realtimeSubscription;
 
   BloodPressureController(this._repository, {bool enableRealtime = true}) {
@@ -22,7 +23,8 @@ class BloodPressureController extends ChangeNotifier {
 
   // Getters
   BloodPressureReading? get currentReading => _currentReading;
-  List<BloodPressureReading> get historicalReadings => _historicalReadings;
+  List<BloodPressureReading> get historicalReadings =>
+      List.unmodifiable(_historicalReadings);
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasData => _currentReading != null;
@@ -58,15 +60,19 @@ class BloodPressureController extends ChangeNotifier {
   /// Load historical readings
   Future<void> loadHistoricalReadings() async {
     try {
+      _isLoading = true;
       _error = null;
+      notifyListeners();
 
       _historicalReadings = await _repository.getReadings(
         startTime: DateTime.now().subtract(const Duration(hours: 1)),
         endTime: DateTime.now(),
       );
 
+      _isLoading = false;
       notifyListeners();
     } catch (e) {
+      _isLoading = false;
       _error = 'Failed to load historical readings: $e';
       notifyListeners();
     }
@@ -111,7 +117,13 @@ class BloodPressureController extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _realtimeSubscription?.cancel();
     super.dispose();
   }

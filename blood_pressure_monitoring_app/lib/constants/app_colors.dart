@@ -91,6 +91,6 @@ class AppColors {
 
   // ── Button colors ───────────────────────────────────────────
   static const Color buttonPrimary = Color(0xFF3B82F6);
-  static const Color buttonSecondary = Color(0xFF3B82F6);
+  static const Color buttonSecondary = Color(0xFF64748B);
   static const Color buttonDanger = Color(0xFFEF4444);
 }

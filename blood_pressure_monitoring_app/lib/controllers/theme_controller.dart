@@ -15,42 +15,35 @@ class ThemeController extends ChangeNotifier {
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_themePrefKey);
-    if (stored == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getString(_themePrefKey);
+      if (stored == null) return;
 
-    switch (stored) {
-      case 'dark':
-        _themeMode = ThemeMode.dark;
-        break;
-      case 'light':
-        _themeMode = ThemeMode.light;
-        break;
-      case 'system':
-        _themeMode = ThemeMode.system;
-        break;
-      default:
-        return;
+      _themeMode = switch (stored) {
+        'dark' => ThemeMode.dark,
+        'light' => ThemeMode.light,
+        'system' => ThemeMode.system,
+        _ => _themeMode,
+      };
+      notifyListeners();
+    } catch (_) {
+      // Gracefully fall back to default theme on storage failure
     }
-    notifyListeners();
   }
 
   Future<void> _persistThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    String value;
-    switch (_themeMode) {
-      case ThemeMode.dark:
-        value = 'dark';
-        break;
-      case ThemeMode.light:
-        value = 'light';
-        break;
-      case ThemeMode.system:
-      default:
-        value = 'system';
-        break;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final value = switch (_themeMode) {
+        ThemeMode.dark => 'dark',
+        ThemeMode.light => 'light',
+        ThemeMode.system => 'system',
+      };
+      await prefs.setString(_themePrefKey, value);
+    } catch (_) {
+      // Non-critical: preference will fall back to default next launch
     }
-    await prefs.setString(_themePrefKey, value);
   }
 
   void toggleTheme() {

@@ -9,7 +9,7 @@ import '../repositories/questionnaire_repository.dart';
 /// Uses Provider for state management
 class QuestionnaireController extends ChangeNotifier {
   final QuestionnaireRepository _repository;
-  final String _userId; // For future multi-user support
+  final String _userId;
 
   // State variables
   QuestionnaireTemplate? _currentTemplate;
@@ -17,15 +17,17 @@ class QuestionnaireController extends ChangeNotifier {
   List<QuestionnaireResponse> _responseHistory = [];
   bool _isLoading = false;
   String? _error;
+  bool _isDisposed = false;
   final Uuid _uuid = const Uuid();
 
   QuestionnaireController(this._repository, {String userId = 'default_user'})
-    : _userId = userId;
+      : _userId = userId;
 
   // Getters
   QuestionnaireTemplate? get currentTemplate => _currentTemplate;
   QuestionnaireResponse? get activeResponse => _activeResponse;
-  List<QuestionnaireResponse> get responseHistory => _responseHistory;
+  List<QuestionnaireResponse> get responseHistory =>
+      List.unmodifiable(_responseHistory);
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasActiveResponse => _activeResponse != null;
@@ -332,5 +334,16 @@ class QuestionnaireController extends ChangeNotifier {
   /// Refresh all data
   Future<void> refresh() async {
     await loadResponseHistory();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

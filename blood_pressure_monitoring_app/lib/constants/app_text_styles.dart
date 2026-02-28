@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 
 /// App-wide text styles optimized for elderly users.
-/// Colors are NOT hardcoded — use Theme.of(context) or pass colors explicitly.
+/// Status colors reference AppColors; all others are theme-agnostic.
 class AppTextStyles {
   // ── Headings ────────────────────────────────────────────────
   static const TextStyle heading1 = TextStyle(
@@ -46,21 +47,21 @@ class AppTextStyles {
   static const TextStyle statusNormal = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: Color(0xFF22C55E),
+    color: AppColors.normal,
     height: 1.2,
   );
 
   static const TextStyle statusWarning = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: Color(0xFFF59E0B),
+    color: AppColors.warning,
     height: 1.2,
   );
 
   static const TextStyle statusDanger = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.bold,
-    color: Color(0xFFEF4444),
+    color: AppColors.danger,
     height: 1.2,
   );
 

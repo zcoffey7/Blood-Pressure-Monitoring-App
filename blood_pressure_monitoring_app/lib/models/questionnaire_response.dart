@@ -140,11 +140,10 @@ class QuestionnaireResponse {
 
   /// Get answer for a specific question
   QuestionAnswer? getAnswer(String questionId) {
-    try {
-      return answers.firstWhere((answer) => answer.questionId == questionId);
-    } catch (e) {
-      return null;
+    for (final answer in answers) {
+      if (answer.questionId == questionId) return answer;
     }
+    return null;
   }
 
   /// Check if a specific question has been answered

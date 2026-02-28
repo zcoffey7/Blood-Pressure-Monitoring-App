@@ -27,7 +27,14 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  try {
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    runApp(_ErrorApp(message: 'Failed to initialize Firebase: $e'));
+    return;
+  }
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -35,7 +42,11 @@ void main() async {
   ]);
 
   final notificationService = NotificationService();
-  await notificationService.initialize();
+  try {
+    await notificationService.initialize();
+  } catch (_) {
+    // Non-critical: app can function without notifications
+  }
 
   notificationService.onNotificationTap = (payload) {
     if (payload == 'symptom_tracker') {
@@ -48,16 +59,47 @@ void main() async {
     }
   };
 
-  runApp(const BloodPressureMonitorApp());
+  final authService = AuthService();
+
+  runApp(BloodPressureMonitorApp(authService: authService));
 }
 
-class BloodPressureMonitorApp extends StatelessWidget {
-  const BloodPressureMonitorApp({super.key});
+class _ErrorApp extends StatelessWidget {
+  final String message;
+  const _ErrorApp({required this.message});
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(message, textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
+class BloodPressureMonitorApp extends StatelessWidget {
+  final AuthService authService;
+
+  const BloodPressureMonitorApp({
+    super.key,
+    required this.authService,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeController()),
@@ -69,8 +111,8 @@ class BloodPressureMonitorApp extends StatelessWidget {
             title: 'BP Monitor',
             debugShowCheckedModeBanner: false,
             themeMode: themeController.themeMode,
-            theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
+            theme: _buildTheme(Brightness.light),
+            darkTheme: _buildTheme(Brightness.dark),
             navigatorKey: navigatorKey,
             home: const AuthWrapper(),
           );
@@ -79,135 +121,70 @@ class BloodPressureMonitorApp extends StatelessWidget {
     );
   }
 
-  ThemeData _buildLightTheme() {
-    return ThemeData(
-      brightness: Brightness.light,
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.light,
-        primary: AppColors.primary,
-        secondary: AppColors.primaryDark,
-        surface: AppColors.lightSurface,
-        onSurface: AppColors.lightTextPrimary,
-      ),
-      scaffoldBackgroundColor: AppColors.lightBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-      textTheme: const TextTheme(
-        displayLarge: AppTextStyles.heading1,
-        displayMedium: AppTextStyles.heading2,
-        displaySmall: AppTextStyles.heading3,
-        bodyLarge: AppTextStyles.bodyLarge,
-        bodyMedium: AppTextStyles.bodyMedium,
-        bodySmall: AppTextStyles.bodySmall,
-        labelLarge: AppTextStyles.button,
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.lightCardBackground,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.buttonPrimary,
-          foregroundColor: Colors.white,
-          textStyle: AppTextStyles.button,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 0,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.buttonSecondary,
-          textStyle: AppTextStyles.button,
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          side: const BorderSide(color: AppColors.buttonSecondary, width: 1.5),
-        ),
-      ),
-      iconTheme:
-          const IconThemeData(size: 28, color: AppColors.lightTextPrimary),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.lightDivider,
-        thickness: 1,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.lightInputFill,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.lightCardBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.lightCardBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.lightSurface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
-      ),
-    );
-  }
+  ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
 
-  ThemeData _buildDarkTheme() {
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final background =
+        isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final onSurface =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final cardBg =
+        isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final cardBorder =
+        isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final inputFill =
+        isDark ? AppColors.darkInputFill : AppColors.lightInputFill;
+    final indicatorAlpha = isDark ? 0.2 : 0.12;
+
+    final appBarFg = isDark ? AppColors.darkTextPrimary : Colors.white;
+    final appBarBg = isDark ? AppColors.darkSurface : AppColors.primary;
+    final outlinedFg = isDark ? AppColors.primary : AppColors.buttonSecondary;
+
+    final baseTextTheme = TextTheme(
+      displayLarge: AppTextStyles.heading1,
+      displayMedium: AppTextStyles.heading2,
+      displaySmall: AppTextStyles.heading3,
+      bodyLarge: AppTextStyles.bodyLarge,
+      bodyMedium: AppTextStyles.bodyMedium,
+      bodySmall: AppTextStyles.bodySmall,
+      labelLarge: AppTextStyles.button,
+    );
+
+    final textTheme = isDark
+        ? baseTextTheme.apply(
+            bodyColor: AppColors.darkTextPrimary,
+            displayColor: AppColors.darkTextPrimary,
+          )
+        : baseTextTheme;
+
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: brightness,
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
-        brightness: Brightness.dark,
+        brightness: brightness,
         primary: AppColors.primary,
         secondary: AppColors.primaryDark,
-        surface: AppColors.darkSurface,
-        onSurface: AppColors.darkTextPrimary,
+        surface: surface,
+        onSurface: onSurface,
       ),
-      scaffoldBackgroundColor: AppColors.darkBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.darkSurface,
-        foregroundColor: AppColors.darkTextPrimary,
+      scaffoldBackgroundColor: background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: appBarBg,
+        foregroundColor: appBarFg,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: AppColors.darkTextPrimary,
+          color: appBarFg,
         ),
       ),
-      textTheme: TextTheme(
-        displayLarge:
-            AppTextStyles.heading1.copyWith(color: AppColors.darkTextPrimary),
-        displayMedium:
-            AppTextStyles.heading2.copyWith(color: AppColors.darkTextPrimary),
-        displaySmall:
-            AppTextStyles.heading3.copyWith(color: AppColors.darkTextPrimary),
-        bodyLarge:
-            AppTextStyles.bodyLarge.copyWith(color: AppColors.darkTextPrimary),
-        bodyMedium:
-            AppTextStyles.bodyMedium.copyWith(color: AppColors.darkTextPrimary),
-        bodySmall:
-            AppTextStyles.bodySmall.copyWith(color: AppColors.darkTextSecondary),
-        labelLarge: AppTextStyles.button,
-      ),
+      textTheme: textTheme,
       cardTheme: CardThemeData(
-        color: AppColors.darkCardBackground,
+        color: cardBg,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -224,30 +201,26 @@ class BloodPressureMonitorApp extends StatelessWidget {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: outlinedFg,
           textStyle: AppTextStyles.button,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          side: const BorderSide(color: AppColors.primary, width: 1.5),
+          side: BorderSide(color: outlinedFg, width: 1.5),
         ),
       ),
-      iconTheme:
-          const IconThemeData(size: 28, color: AppColors.darkTextPrimary),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.darkDivider,
-        thickness: 1,
-      ),
+      iconTheme: IconThemeData(size: 28, color: onSurface),
+      dividerTheme: DividerThemeData(color: divider, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.darkInputFill,
+        fillColor: inputFill,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.darkCardBorder),
+          borderSide: BorderSide(color: cardBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.darkCardBorder),
+          borderSide: BorderSide(color: cardBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -255,8 +228,8 @@ class BloodPressureMonitorApp extends StatelessWidget {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.darkSurface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
+        backgroundColor: surface,
+        indicatorColor: AppColors.primary.withValues(alpha: indicatorAlpha),
       ),
     );
   }
@@ -275,7 +248,7 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             ),

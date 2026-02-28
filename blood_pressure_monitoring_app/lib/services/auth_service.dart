@@ -50,7 +50,11 @@ class AuthService {
 
   /// Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
   }
 
   /// Send password reset email
@@ -67,45 +71,40 @@ class AuthService {
     try {
       await currentUser?.updateDisplayName(displayName);
       await currentUser?.reload();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
     } catch (e) {
-      throw Exception('Failed to update display name: ${e.toString()}');
+      throw Exception('Failed to update display name. Please try again.');
     }
   }
 
   /// Delete current user account
   Future<void> deleteAccount() async {
+    if (currentUser == null) {
+      throw Exception('No user is currently signed in.');
+    }
     try {
-      await currentUser?.delete();
+      await currentUser!.delete();
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
   }
 
-  /// Handle Firebase Auth exceptions and return user-friendly messages
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'The password provided is too weak. Please use at least 6 characters.';
-      case 'email-already-in-use':
-        return 'An account already exists for this email.';
-      case 'invalid-email':
-        return 'The email address is not valid.';
-      case 'operation-not-allowed':
-        return 'Email/password accounts are not enabled.';
-      case 'user-disabled':
-        return 'This user account has been disabled.';
-      case 'user-not-found':
-        return 'No user found with this email.';
-      case 'wrong-password':
-        return 'Wrong password provided.';
-      case 'invalid-credential':
-        return 'The credentials provided are invalid.';
-      case 'requires-recent-login':
-        return 'This operation requires recent authentication. Please sign in again.';
-      case 'too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      default:
-        return 'An error occurred: ${e.message ?? 'Unknown error'}';
-    }
+  /// Handle Firebase Auth exceptions and return user-friendly Exception
+  Exception _handleAuthException(FirebaseAuthException e) {
+    final message = switch (e.code) {
+      'weak-password' => 'The password provided is too weak. Please use at least 6 characters.',
+      'email-already-in-use' => 'An account already exists for this email.',
+      'invalid-email' => 'The email address is not valid.',
+      'operation-not-allowed' => 'Email/password accounts are not enabled.',
+      'user-disabled' => 'This user account has been disabled.',
+      'user-not-found' => 'No user found with this email.',
+      'wrong-password' => 'Wrong password provided.',
+      'invalid-credential' => 'The credentials provided are invalid.',
+      'requires-recent-login' => 'This operation requires recent authentication. Please sign in again.',
+      'too-many-requests' => 'Too many failed attempts. Please try again later.',
+      _ => 'An error occurred: ${e.message ?? 'Unknown error'}',
+    };
+    return Exception(message);
   }
 }
