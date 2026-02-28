@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../controllers/blood_pressure_controller.dart';
 import '../../controllers/device_controller.dart';
+import '../../controllers/questionnaire_controller.dart';
 import '../../widgets/connection_status_widget.dart';
 import '../../widgets/current_reading_card.dart';
 import '../../widgets/live_trend_chart.dart';
@@ -39,60 +40,15 @@ class HomeScreen extends StatelessWidget {
 
                 _buildErrorBanner(context),
 
-                // Symptom Tracker — full-width, highest priority
-                _buildTrackerCard(
-                  context,
-                  templateId: 'symptom_tracker',
-                  title: 'Symptom Tracker',
-                  subtitle: 'Log your daily symptoms',
-                  icon: Icons.assignment_rounded,
-                  gradientColors: [
-                    const Color(0xFF43A047),
-                    const Color(0xFF66BB6A),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Sleep + BP side by side
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSmallTrackerCard(
-                        context,
-                        templateId: 'sleep_tracker',
-                        title: 'Sleep',
-                        icon: Icons.bedtime_rounded,
-                        gradientColors: [
-                          const Color(0xFF5C6BC0),
-                          const Color(0xFF7986CB),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildSmallTrackerCard(
-                        context,
-                        templateId: 'bp_tracker',
-                        title: 'Blood Pressure',
-                        icon: Icons.monitor_heart_rounded,
-                        gradientColors: [
-                          const Color(0xFFE53935),
-                          const Color(0xFFEF5350),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // ── Vital Chips ───────────────────────────────
-                _buildVitalChips(context),
+                _buildCheckInButton(context),
                 const SizedBox(height: 16),
 
                 const CurrentReadingCard(),
                 const SizedBox(height: 24),
 
-                const SizedBox(height: 300, child: LiveTrendChart()),
+                const SizedBox(
+                    height: 300,
+                    child: RepaintBoundary(child: LiveTrendChart())),
                 const SizedBox(height: 16),
 
                 const ActionButtons(),
@@ -105,191 +61,159 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTrackerCard(
-    BuildContext context, {
-    required String templateId,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required List<Color> gradientColors,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = isDark
-        ? gradientColors
-            .map((c) => Color.lerp(c, Colors.black, 0.25)!)
-            .toList()
-        : gradientColors;
-
+  Widget _buildCheckInButton(BuildContext context) {
     return InkWell(
-      onTap: () => _openTracker(context, templateId),
-      borderRadius: BorderRadius.circular(16),
+      onTap: () => _showCheckInSheet(context),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: colors.first.withValues(alpha: 0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: AppColors.cardBackground(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.cardBorder(context)),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 40, color: Colors.white),
+              child: const Icon(Icons.assignment_rounded,
+                  color: AppColors.primary, size: 24),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text('Log Check-In',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  )),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                size: 18, color: AppColors.textSecondary(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCheckInSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: AppColors.cardBackground(context),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.divider(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Text('Choose Check-In',
+                  style: AppTextStyles.heading3.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface)),
+              const SizedBox(height: 16),
+              _buildSheetOption(
+                context: context,
+                parentCtx: ctx,
+                templateId: 'symptom_tracker',
+                title: 'Symptom Tracker',
+                subtitle: 'Log your daily symptoms',
+                icon: Icons.assignment_rounded,
+                color: const Color(0xFF43A047),
+              ),
+              const SizedBox(height: 8),
+              _buildSheetOption(
+                context: context,
+                parentCtx: ctx,
+                templateId: 'sleep_tracker',
+                title: 'Sleep Tracker',
+                subtitle: 'Track your sleep quality',
+                icon: Icons.bedtime_rounded,
+                color: const Color(0xFF5C6BC0),
+              ),
+              const SizedBox(height: 8),
+              _buildSheetOption(
+                context: context,
+                parentCtx: ctx,
+                templateId: 'bp_tracker',
+                title: 'Blood Pressure',
+                subtitle: 'Record your BP measurements',
+                icon: Icons.monitor_heart_rounded,
+                color: const Color(0xFFE53935),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheetOption({
+    required BuildContext context,
+    required BuildContext parentCtx,
+    required String templateId,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.of(parentCtx).pop();
+        _openTracker(context, templateId);
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.cardBorder(context)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: AppTextStyles.heading3
-                          .copyWith(color: Colors.white)),
-                  const SizedBox(height: 4),
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      )),
+                  const SizedBox(height: 2),
                   Text(subtitle,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9))),
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary(context))),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24),
+            Icon(Icons.arrow_forward_ios,
+                size: 16, color: AppColors.textSecondary(context)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSmallTrackerCard(
-    BuildContext context, {
-    required String templateId,
-    required String title,
-    required IconData icon,
-    required List<Color> gradientColors,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colors = isDark
-        ? gradientColors
-            .map((c) => Color.lerp(c, Colors.black, 0.25)!)
-            .toList()
-        : gradientColors;
-
-    return InkWell(
-      onTap: () => _openTracker(context, templateId),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: colors.first.withValues(alpha: 0.25),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 36, color: Colors.white),
-            const SizedBox(height: 8),
-            Text(title,
-                style: AppTextStyles.bodyLarge.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVitalChips(BuildContext context) {
-    return Consumer<BloodPressureController>(
-      builder: (context, controller, _) {
-        final reading = controller.currentReading;
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final chipBg = isDark ? AppColors.darkSurface : AppColors.lightSurface;
-        final borderColor = AppColors.cardBorder(context);
-
-        return Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: chipBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.speed_rounded,
-                        size: 20, color: AppColors.systolic),
-                    const SizedBox(width: 8),
-                    Text(
-                      reading != null
-                          ? '${reading.systolic}/${reading.diastolic} mmHg'
-                          : '-- / -- mmHg',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: chipBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.favorite_rounded,
-                        size: 20, color: AppColors.danger),
-                    const SizedBox(width: 8),
-                    Text(
-                      reading != null
-                          ? '${reading.heartRate} BPM'
-                          : '-- BPM',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -348,10 +272,13 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> _openTracker(BuildContext context, String templateId) async {
+    final controller = context.read<QuestionnaireController>();
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) =>
-            QuestionnaireScreen(templateId: templateId),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: controller,
+          child: QuestionnaireScreen(templateId: templateId),
+        ),
       ),
     );
 

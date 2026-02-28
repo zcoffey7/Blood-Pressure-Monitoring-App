@@ -8,12 +8,11 @@ import '../services/auth_service.dart';
 class AuthController extends ChangeNotifier {
   final AuthService _authService;
   StreamSubscription<User?>? _authSubscription;
+  bool _isDisposed = false;
 
   AuthController(this._authService) {
-    // Initialize with current user
     _user = _authService.currentUser;
 
-    // Listen to auth state changes
     _authSubscription = _authService.authStateChanges.listen((User? user) {
       _user = user;
       notifyListeners();
@@ -25,8 +24,13 @@ class AuthController extends ChangeNotifier {
   String? _error;
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
-    // Cancel stream subscription to prevent memory leaks
+    _isDisposed = true;
     _authSubscription?.cancel();
     super.dispose();
   }

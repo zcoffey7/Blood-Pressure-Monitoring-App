@@ -109,7 +109,7 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
       ],
     );
 
-    // 2. Sleep Tracker — most questions required
+    // 2. Sleep Tracker — all questions optional
     final sleepTracker = QuestionnaireTemplate(
       id: 'sleep_tracker',
       title: 'Sleep Tracker',
@@ -120,32 +120,32 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           id: 'assessment_date',
           text: "Today's Date",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'last_meal_time',
           text: "Yesterday's Last Meal Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'bedtime',
           text: "Yesterday's Bed Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'wakeup_time',
           text: "Today's Wake-up Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'sleep_quality',
           text:
               'Sleep quality: Rate the quality of your sleep last night (0 = Best possible sleep, 10 = Worst possible sleep).',
           type: QuestionType.scale,
-          required: true,
+          required: false,
           minValue: 0,
           maxValue: 10,
         ),
@@ -154,7 +154,7 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           text:
               'Fatigue within 1 hour of waking: Rate your fatigue level.',
           type: QuestionType.ratingWithLabels,
-          required: true,
+          required: false,
           minValue: 1,
           maxValue: 7,
           ratingLabels: {
@@ -177,7 +177,7 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
       ],
     );
 
-    // 3. Blood Pressure Tracker
+    // 3. Blood Pressure Tracker — all questions optional
     final bpTracker = QuestionnaireTemplate(
       id: 'bp_tracker',
       title: 'Blood Pressure Tracker',
@@ -188,27 +188,27 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           id: 'assessment_date',
           text: 'Date and Time',
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'arm_used',
           text: 'Which arm?',
           type: QuestionType.multipleChoice,
-          required: true,
+          required: false,
           options: ['Left', 'Right'],
         ),
         const Question(
           id: 'posture',
           text: 'Posture',
           type: QuestionType.multipleChoice,
-          required: true,
+          required: false,
           options: ['Lying down', 'Sitting', 'Standing'],
         ),
         const Question(
           id: 'bp_measurements',
           text: 'Blood pressure measurements',
           type: QuestionType.table,
-          required: true,
+          required: false,
           options: ['Left', 'Right'],
         ),
         const Question(

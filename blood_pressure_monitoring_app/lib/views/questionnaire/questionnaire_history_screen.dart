@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
 import '../../controllers/questionnaire_controller.dart';
@@ -57,7 +58,7 @@ class _QuestionnaireHistoryScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Health Check-Ins'),
+        title: const Text('Check-Ins'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: false,
@@ -335,42 +336,170 @@ class _QuestionnaireHistoryScreenState
     );
   }
 
+  String _templateTitle(String templateId) {
+    switch (templateId) {
+      case 'symptom_tracker':
+        return 'Symptom Tracker';
+      case 'sleep_tracker':
+        return 'Sleep Tracker';
+      case 'bp_tracker':
+        return 'Blood Pressure Tracker';
+      default:
+        return 'Check-In';
+    }
+  }
+
+  String _questionLabel(String questionId) {
+    const labels = {
+      'assessment_date': 'Date & Time',
+      'postural_symptoms': 'Postural Symptoms',
+      'fatigue_level': 'Fatigue Level',
+      'fatigue_score': 'Fatigue Score',
+      'other_symptoms': 'Other Symptoms',
+      'last_meal_time': 'Last Meal Time',
+      'bedtime': 'Bed Time',
+      'wakeup_time': 'Wake-up Time',
+      'sleep_quality': 'Sleep Quality',
+      'notes': 'Notes',
+      'arm_used': 'Arm Used',
+      'posture': 'Posture',
+      'bp_measurements': 'BP Measurements',
+    };
+    return labels[questionId] ?? questionId;
+  }
+
+  String _formatAnswerValue(dynamic value) {
+    if (value == null) return '—';
+    if (value is Timestamp) {
+      return DateFormat('MMM d, yyyy – h:mm a').format(value.toDate());
+    }
+    if (value is DateTime) {
+      return DateFormat('MMM d, yyyy – h:mm a').format(value);
+    }
+    return value.toString();
+  }
+
   void _viewResponse(QuestionnaireResponse response) {
+    final templateColor = _colorForTemplate(response.templateId);
+    final templateIcon = _iconForTemplate(response.templateId);
+    final dateTimeFormat = DateFormat('MMM d, yyyy – h:mm a');
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Response Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Status: ${response.isComplete ? "Completed" : "Draft"}'),
-              const SizedBox(height: 8),
-              Text(
-                  'Started: ${DateFormat('MMM d, yyyy - h:mm a').format(response.startedAt)}'),
-              if (response.completedAt != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                    'Completed: ${DateFormat('MMM d, yyyy - h:mm a').format(response.completedAt!)}'),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: templateColor,
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(templateIcon, color: Colors.white, size: 32),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _templateTitle(response.templateId),
+                              style: AppTextStyles.heading3
+                                  .copyWith(color: Colors.white),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              dateTimeFormat.format(response.startedAt),
+                              style: AppTextStyles.bodySmall
+                                  .copyWith(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          response.isComplete ? 'Completed' : 'Draft',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (response.answers.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: Text(
+                              'No answers recorded',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary(context)),
+                            ),
+                          ),
+                        )
+                      else
+                        ...response.answers.map((a) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _questionLabel(a.questionId),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary(context),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatAnswerValue(a.value),
+                                    style: AppTextStyles.bodyLarge.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                    ],
+                  ),
+                ),
+
+                Padding(
+                  padding:
+                      const EdgeInsets.only(left: 20, right: 20, bottom: 16),
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Close'),
+                  ),
+                ),
               ],
-              const SizedBox(height: 16),
-              Text('Answers: ${response.answers.length}',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              ...response.answers.map((a) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text('• ${a.questionId}: ${a.value}',
-                        style: AppTextStyles.bodySmall),
-                  )),
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Close')),
-        ],
       ),
     );
   }
@@ -455,9 +584,14 @@ class _QuestionnaireHistoryScreenState
 
   Future<void> _startQuestionnaire(
       BuildContext context, String templateId) async {
+    final controller = context.read<QuestionnaireController>();
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-          builder: (_) => QuestionnaireScreen(templateId: templateId)),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: controller,
+          child: QuestionnaireScreen(templateId: templateId),
+        ),
+      ),
     );
     if (result == true && mounted) await _loadHistory();
   }

@@ -14,11 +14,12 @@ class AlertController extends ChangeNotifier {
   int _unreadCount = 0;
   bool _isLoading = false;
   String? _error;
+  bool _isDisposed = false;
   StreamSubscription<List<HealthAlert>>? _alertsSubscription;
   final Uuid _uuid = const Uuid();
 
   AlertController(this._repository) {
-    _initialize();
+    _startWatchingAlerts();
   }
 
   // Getters
@@ -29,41 +30,23 @@ class AlertController extends ChangeNotifier {
   bool get hasAlerts => _alerts.isNotEmpty;
   bool get hasUnread => _unreadCount > 0;
 
-  /// Initialize controller - start listening to real-time alerts
-  void _initialize() {
-    _startWatchingAlerts();
-    loadAlerts();
-  }
-
-  /// Load all alerts from Firestore
-  Future<void> loadAlerts() async {
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      _alerts = await _repository.getAlerts();
-      _unreadCount = await _repository.getUnreadCount();
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _error = 'Failed to load alerts: $e';
-      notifyListeners();
-    }
-  }
-
-  /// Start listening to real-time alert updates
+  /// Start listening to real-time alert updates.
+  /// The stream emits immediately with current data, so no separate
+  /// one-shot fetch is needed.
   void _startWatchingAlerts() {
+    _isLoading = true;
+    notifyListeners();
+
     _alertsSubscription = _repository.watchAlerts().listen(
       (alerts) {
         _alerts = alerts;
         _unreadCount = alerts.where((a) => !a.isRead).length;
+        _isLoading = false;
         notifyListeners();
       },
       onError: (error) {
         _error = 'Alert stream error: $error';
+        _isLoading = false;
         notifyListeners();
       },
     );
@@ -145,11 +128,31 @@ class AlertController extends ChangeNotifier {
 
   /// Refresh alerts
   Future<void> refresh() async {
-    await loadAlerts();
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      _alerts = await _repository.getAlerts();
+      _unreadCount = _alerts.where((a) => !a.isRead).length;
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Failed to load alerts: $e';
+      notifyListeners();
+    }
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _alertsSubscription?.cancel();
     super.dispose();
   }

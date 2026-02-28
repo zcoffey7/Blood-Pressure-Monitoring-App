@@ -80,7 +80,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
       ],
     );
 
-    // 2. Sleep Tracker — most questions required
+    // 2. Sleep Tracker — all questions optional
     final sleepTracker = QuestionnaireTemplate(
       id: 'sleep_tracker',
       title: 'Sleep Tracker',
@@ -91,32 +91,32 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
           id: 'assessment_date',
           text: "Today's Date",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'last_meal_time',
           text: "Yesterday's Last Meal Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'bedtime',
           text: "Yesterday's Bed Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'wakeup_time',
           text: "Today's Wake-up Time",
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'sleep_quality',
           text:
               'Sleep quality: Rate the quality of your sleep last night (0 = Best possible sleep, 10 = Worst possible sleep).',
           type: QuestionType.scale,
-          required: true,
+          required: false,
           minValue: 0,
           maxValue: 10,
         ),
@@ -125,7 +125,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
           text:
               'Fatigue within 1 hour of waking: Rate your fatigue level.',
           type: QuestionType.ratingWithLabels,
-          required: true,
+          required: false,
           minValue: 1,
           maxValue: 7,
           ratingLabels: {
@@ -148,7 +148,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
       ],
     );
 
-    // 3. Blood Pressure Tracker
+    // 3. Blood Pressure Tracker — all questions optional
     final bpTracker = QuestionnaireTemplate(
       id: 'bp_tracker',
       title: 'Blood Pressure Tracker',
@@ -159,27 +159,27 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
           id: 'assessment_date',
           text: 'Date and Time',
           type: QuestionType.dateTime,
-          required: true,
+          required: false,
         ),
         const Question(
           id: 'arm_used',
           text: 'Which arm?',
           type: QuestionType.multipleChoice,
-          required: true,
+          required: false,
           options: ['Left', 'Right'],
         ),
         const Question(
           id: 'posture',
           text: 'Posture',
           type: QuestionType.multipleChoice,
-          required: true,
+          required: false,
           options: ['Lying down', 'Sitting', 'Standing'],
         ),
         const Question(
           id: 'bp_measurements',
           text: 'Blood pressure measurements',
           type: QuestionType.table,
-          required: true,
+          required: false,
           options: ['Left', 'Right'],
         ),
         const Question(
@@ -232,12 +232,13 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
 
   @override
   Future<List<QuestionnaireResponse>> getResponsesByUser(
-    String userId,
-  ) async {
+    String userId, {
+    int limit = 100,
+  }) async {
     try {
-      // All documents in the user's surveys collection belong to them
       final snapshot = await _collection
           .orderBy('startedAt', descending: true)
+          .limit(limit)
           .get();
 
       return snapshot.docs.map(_fromFirestore).toList();
@@ -251,6 +252,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
     required DateTime startDate,
     required DateTime endDate,
     String? userId,
+    int limit = 100,
   }) async {
     try {
       final snapshot = await _collection
@@ -263,6 +265,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
             'startedAt',
             isLessThanOrEqualTo: Timestamp.fromDate(endDate),
           )
+          .limit(limit)
           .get();
 
       return snapshot.docs.map(_fromFirestore).toList();
@@ -274,10 +277,6 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
   @override
   Future<void> updateResponse(QuestionnaireResponse response) async {
     try {
-      final doc = await _collection.doc(response.id).get();
-      if (!doc.exists) {
-        throw Exception('Response not found: ${response.id}');
-      }
       await _collection.doc(response.id).update(_toFirestore(response));
     } catch (e) {
       throw Exception('Failed to update survey response: $e');
