@@ -43,63 +43,71 @@ class _ActionButtonsState extends State<ActionButtons> {
   }
 
   Widget _buildPauseButton(BuildContext context) {
-    final bpController = context.watch<BloodPressureController>();
-    final isMonitoring = !bpController.isPaused;
-
-    return ElevatedButton.icon(
-      onPressed: () => _handlePauseResume(context),
-      icon: Icon(isMonitoring ? Icons.pause : Icons.play_arrow, size: 24),
-      label: Text(
-        isMonitoring ? 'Pause Monitoring' : 'Resume Monitoring',
-        style: AppTextStyles.button.copyWith(fontSize: 16),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isMonitoring ? AppColors.buttonPrimary : AppColors.normal,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: 0,
-      ),
+    return Selector<BloodPressureController, bool>(
+      selector: (_, c) => c.isPaused,
+      builder: (context, isPaused, _) {
+        final isMonitoring = !isPaused;
+        return ElevatedButton.icon(
+          onPressed: () => _handlePauseResume(context),
+          icon: Icon(isMonitoring ? Icons.pause : Icons.play_arrow, size: 24),
+          label: Text(
+            isMonitoring ? 'Pause Monitoring' : 'Resume Monitoring',
+            style: AppTextStyles.button.copyWith(fontSize: 16),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                isMonitoring ? AppColors.buttonPrimary : AppColors.normal,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            elevation: 0,
+          ),
+        );
+      },
     );
   }
 
   Widget _buildSyncButton(BuildContext context) {
-    final deviceController = context.watch<DeviceController>();
-    final isSyncing = deviceController.isSyncing;
-
-    return OutlinedButton.icon(
-      onPressed: isSyncing ? null : () => _handleSync(context),
-      icon: isSyncing
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(AppColors.buttonSecondary),
-              ),
-            )
-          : const Icon(Icons.sync, size: 24),
-      label: Text(
-        isSyncing ? 'Syncing...' : 'Re-Sync Device',
-        style: AppTextStyles.button.copyWith(
-          fontSize: 16,
-          color: isSyncing
-              ? AppColors.textSecondary(context)
-              : AppColors.buttonSecondary,
-        ),
-      ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.buttonSecondary,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        side: BorderSide(
-          color: isSyncing
-              ? AppColors.textSecondary(context)
-              : AppColors.buttonSecondary,
-          width: 1.5,
-        ),
-      ),
+    return Selector<DeviceController, bool>(
+      selector: (_, c) => c.isSyncing,
+      builder: (context, isSyncing, _) {
+        return OutlinedButton.icon(
+          onPressed: isSyncing ? null : () => _handleSync(context),
+          icon: isSyncing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.buttonSecondary),
+                  ),
+                )
+              : const Icon(Icons.sync, size: 24),
+          label: Text(
+            isSyncing ? 'Syncing...' : 'Re-Sync Device',
+            style: AppTextStyles.button.copyWith(
+              fontSize: 16,
+              color: isSyncing
+                  ? AppColors.textSecondary(context)
+                  : AppColors.buttonSecondary,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.buttonSecondary,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+            side: BorderSide(
+              color: isSyncing
+                  ? AppColors.textSecondary(context)
+                  : AppColors.buttonSecondary,
+              width: 1.5,
+            ),
+          ),
+        );
+      },
     );
   }
 

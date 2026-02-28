@@ -38,7 +38,7 @@ class _MainNavigationState extends State<MainNavigation> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(
-              icon: Icon(Icons.history_rounded), label: 'History'),
+              icon: Icon(Icons.assignment_rounded), label: 'Check-Ins'),
           NavigationDestination(
               icon: Icon(Icons.notifications_rounded), label: 'Alerts'),
           NavigationDestination(

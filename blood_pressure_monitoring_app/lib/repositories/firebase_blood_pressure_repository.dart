@@ -56,9 +56,7 @@ class FirebaseBloodPressureRepository implements BloodPressureRepository {
         );
       }
 
-      if (limit != null) {
-        query = query.limit(limit);
-      }
+      query = query.limit(limit ?? 200);
 
       final snapshot = await query.get();
 

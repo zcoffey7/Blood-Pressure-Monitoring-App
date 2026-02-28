@@ -15,7 +15,7 @@ import 'controllers/questionnaire_controller.dart';
 import 'controllers/alert_controller.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/theme_controller.dart';
-import 'repositories/firebase_blood_pressure_repository.dart';
+import 'repositories/blood_pressure_repository.dart';
 import 'repositories/firebase_questionnaire_repository.dart';
 import 'repositories/alert_repository.dart';
 import 'repositories/device_repository.dart';
@@ -47,17 +47,6 @@ void main() async {
   } catch (_) {
     // Non-critical: app can function without notifications
   }
-
-  notificationService.onNotificationTap = (payload) {
-    if (payload == 'symptom_tracker') {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) =>
-              const QuestionnaireScreen(templateId: 'symptom_tracker'),
-        ),
-      );
-    }
-  };
 
   final authService = AuthService();
 
@@ -270,8 +259,9 @@ class AuthWrapper extends StatelessWidget {
 }
 
 /// Provides user-scoped data providers that depend on authentication.
-/// Keyed by userId so providers recreate when user changes.
-class _AuthenticatedProviders extends StatelessWidget {
+/// Uses StatefulWidget so services/repos are created once per user session,
+/// not on every rebuild.
+class _AuthenticatedProviders extends StatefulWidget {
   final String userId;
   final Widget child;
 
@@ -281,29 +271,80 @@ class _AuthenticatedProviders extends StatelessWidget {
   });
 
   @override
+  State<_AuthenticatedProviders> createState() =>
+      _AuthenticatedProvidersState();
+}
+
+class _AuthenticatedProvidersState extends State<_AuthenticatedProviders> {
+  late final FirestoreService _firestoreService;
+  late final MockBloodPressureRepository _bpRepo;
+  late final FirebaseQuestionnaireRepository _questionnaireRepo;
+  late final FirebaseAlertRepository _alertRepo;
+  late final MockDeviceRepository _deviceRepo;
+
+  @override
+  void initState() {
+    super.initState();
+    _firestoreService = FirestoreService();
+    _firestoreService.initializeUserDocument();
+
+    _bpRepo = MockBloodPressureRepository();
+    _questionnaireRepo = FirebaseQuestionnaireRepository(_firestoreService);
+    _alertRepo = FirebaseAlertRepository(_firestoreService);
+    _deviceRepo = MockDeviceRepository();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final firestoreService = FirestoreService();
-    firestoreService.initializeUserDocument();
-
-    final bpRepo = FirebaseBloodPressureRepository(firestoreService);
-    final questionnaireRepo = FirebaseQuestionnaireRepository(firestoreService);
-    final alertRepo = FirebaseAlertRepository(firestoreService);
-    final deviceRepo = MockDeviceRepository();
-
     return MultiProvider(
-      key: ValueKey(userId),
+      key: ValueKey(widget.userId),
       providers: [
         ChangeNotifierProvider(
-            create: (_) => BloodPressureController(bpRepo)),
+            create: (_) => BloodPressureController(_bpRepo)),
         ChangeNotifierProvider(
-            create: (_) => DeviceController(deviceRepo)),
+            create: (_) => DeviceController(_deviceRepo)),
         ChangeNotifierProvider(
-            create: (_) =>
-                QuestionnaireController(questionnaireRepo, userId: userId)),
+            create: (_) => QuestionnaireController(_questionnaireRepo,
+                userId: widget.userId)),
         ChangeNotifierProvider(
-            create: (_) => AlertController(alertRepo)),
+            create: (_) => AlertController(_alertRepo)),
       ],
-      child: child,
+      child: _NotificationTapHandler(child: widget.child),
     );
   }
+}
+
+/// Sets up the notification tap handler with access to user-scoped providers.
+/// Must be a child of MultiProvider so it can read QuestionnaireController.
+class _NotificationTapHandler extends StatefulWidget {
+  final Widget child;
+  const _NotificationTapHandler({required this.child});
+
+  @override
+  State<_NotificationTapHandler> createState() =>
+      _NotificationTapHandlerState();
+}
+
+class _NotificationTapHandlerState extends State<_NotificationTapHandler> {
+  @override
+  void initState() {
+    super.initState();
+    final notificationService = NotificationService();
+    notificationService.onNotificationTap = (payload) {
+      if (payload == 'symptom_tracker' && mounted) {
+        final controller = context.read<QuestionnaireController>();
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: controller,
+              child: const QuestionnaireScreen(templateId: 'symptom_tracker'),
+            ),
+          ),
+        );
+      }
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

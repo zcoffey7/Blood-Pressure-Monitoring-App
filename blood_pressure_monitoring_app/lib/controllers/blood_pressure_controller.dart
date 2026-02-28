@@ -30,10 +30,9 @@ class BloodPressureController extends ChangeNotifier {
   bool get hasData => _currentReading != null;
   bool get isPaused => _isPaused;
 
-  /// Initialize controller and load data
+  /// Initialize controller and load data in parallel
   Future<void> _initialize(bool enableRealtime) async {
-    await loadCurrentReading();
-    await loadHistoricalReadings();
+    await Future.wait([loadCurrentReading(), loadHistoricalReadings()]);
     if (enableRealtime) {
       _startRealtimeUpdates();
     }

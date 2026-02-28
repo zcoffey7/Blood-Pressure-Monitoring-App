@@ -7,7 +7,7 @@ import '../services/firestore_service.dart';
 /// Follows DIP - Depends on abstraction, not concrete implementation
 abstract class AlertRepository {
   /// Get all alerts for the current user
-  Future<List<HealthAlert>> getAlerts({bool includeRead = true});
+  Future<List<HealthAlert>> getAlerts({bool includeRead = true, int limit = 100});
 
   /// Get unread alert count
   Future<int> getUnreadCount();
@@ -45,7 +45,10 @@ class FirebaseAlertRepository implements AlertRepository {
       _firestoreService.alertsCollection;
 
   @override
-  Future<List<HealthAlert>> getAlerts({bool includeRead = true}) async {
+  Future<List<HealthAlert>> getAlerts({
+    bool includeRead = true,
+    int limit = 100,
+  }) async {
     try {
       Query<Map<String, dynamic>> query =
           _collection.orderBy('createdAt', descending: true);
@@ -54,8 +57,8 @@ class FirebaseAlertRepository implements AlertRepository {
         query = query.where('isRead', isEqualTo: false);
       }
 
-      // Don't show dismissed alerts
       query = query.where('isDismissed', isEqualTo: false);
+      query = query.limit(limit);
 
       final snapshot = await query.get();
       return snapshot.docs.map(_fromFirestore).toList();
@@ -139,6 +142,7 @@ class FirebaseAlertRepository implements AlertRepository {
     return _collection
         .where('isDismissed', isEqualTo: false)
         .orderBy('createdAt', descending: true)
+        .limit(100)
         .snapshots()
         .map((snapshot) => snapshot.docs.map(_fromFirestore).toList());
   }

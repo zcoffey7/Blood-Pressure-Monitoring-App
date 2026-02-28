@@ -19,6 +19,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _isSubmitting = false;
+  bool _submitted = false;
 
   @override
   void initState() {
@@ -41,7 +42,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Health Check-In'),
+        title: Consumer<QuestionnaireController>(
+          builder: (context, controller, _) {
+            return Text(controller.currentTemplate?.title ?? 'Health Check-In');
+          },
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close, size: 28),
           onPressed: _handleBack,
@@ -49,6 +54,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       ),
       body: Consumer<QuestionnaireController>(
         builder: (context, controller, child) {
+          if (_submitted) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -305,18 +313,20 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitted = true;
+    });
+
     final success = await controller.submitQuestionnaire();
-    setState(() => _isSubmitting = false);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Questionnaire submitted successfully!'),
-        backgroundColor: AppColors.normal,
-        behavior: SnackBarBehavior.floating,
-      ));
       Navigator.of(context).pop(true);
     } else if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+        _submitted = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(controller.error ?? 'Failed to submit questionnaire'),
         backgroundColor: AppColors.danger,
