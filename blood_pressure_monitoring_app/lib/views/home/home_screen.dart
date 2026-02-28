@@ -9,6 +9,7 @@ import '../../widgets/connection_status_widget.dart';
 import '../../widgets/current_reading_card.dart';
 import '../../widgets/live_trend_chart.dart';
 import '../../widgets/action_buttons.dart';
+import '../device/device_scan_screen.dart';
 import '../questionnaire/questionnaire_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -35,8 +36,10 @@ class HomeScreen extends StatelessWidget {
                         .copyWith(color: colorScheme.onSurface)),
                 const SizedBox(height: 24),
 
-                const ConnectionStatusWidget(),
+                _buildConnectionRow(context),
                 const SizedBox(height: 16),
+
+                _buildHeartRateCard(context),
 
                 _buildErrorBanner(context),
 
@@ -58,6 +61,88 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildConnectionRow(BuildContext context) {
+    return Consumer<DeviceController>(
+      builder: (context, controller, _) {
+        return GestureDetector(
+          onTap: controller.isConnected
+              ? null
+              : () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => ChangeNotifierProvider.value(
+                              value: controller,
+                              child: const DeviceScanScreen(),
+                            )),
+                  ),
+          child: const ConnectionStatusWidget(),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeartRateCard(BuildContext context) {
+    return Consumer<DeviceController>(
+      builder: (context, controller, _) {
+        final hr = controller.heartRate;
+        if (hr == null) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground(context),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.cardBorder(context)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.heartRate.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.favorite_rounded,
+                      color: AppColors.heartRate, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Heart Rate',
+                        style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary(context))),
+                    const SizedBox(height: 2),
+                    Text('$hr BPM',
+                        style: AppTextStyles.heading3.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurface)),
+                  ],
+                ),
+                const Spacer(),
+                Text('LIVE',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.connected,
+                      fontWeight: FontWeight.bold,
+                    )),
+                const SizedBox(width: 6),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.connected,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

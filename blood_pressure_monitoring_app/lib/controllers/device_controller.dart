@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'
+    hide BluetoothService;
+
 import '../models/device_connection.dart';
+import '../repositories/ble_device_repository.dart';
 import '../repositories/device_repository.dart';
 
-/// Controller for device connection management
-/// Follows SRP - Only manages device connection state
-/// Uses Provider for state management
+/// Controller for device connection management.
+/// Supports both [BleDeviceRepository] (real BLE) and any [DeviceRepository]
+/// (mock, test). Scan/select features are only available with BLE.
 class DeviceController extends ChangeNotifier {
   final DeviceRepository _repository;
 
@@ -20,15 +24,31 @@ class DeviceController extends ChangeNotifier {
     _initialize(enableMonitoring);
   }
 
-  // Getters
+  // ── Getters ────────────────────────────────────────────────────
+
   DeviceConnection? get connection => _connection;
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
   String? get error => _error;
   bool get isConnected => _connection?.isConnected ?? false;
   int get batteryLevel => _connection?.batteryLevel ?? 0;
+  int? get heartRate => _connection?.heartRate;
 
-  /// Initialize controller and load connection status
+  /// Whether the underlying repository supports BLE scanning.
+  bool get canScan => _repository is BleDeviceRepository;
+
+  bool get isScanning =>
+      _repository is BleDeviceRepository && _repository.isScanning;
+
+  Stream<List<ScanResult>> get scanResults {
+    if (_repository is BleDeviceRepository) {
+      return _repository.scanResults;
+    }
+    return const Stream.empty();
+  }
+
+  // ── Initialization ─────────────────────────────────────────────
+
   Future<void> _initialize(bool enableMonitoring) async {
     await loadConnectionStatus();
     if (enableMonitoring) {
@@ -36,7 +56,8 @@ class DeviceController extends ChangeNotifier {
     }
   }
 
-  /// Load current connection status
+  // ── Connection Status ──────────────────────────────────────────
+
   Future<void> loadConnectionStatus() async {
     try {
       _isLoading = true;
@@ -54,7 +75,35 @@ class DeviceController extends ChangeNotifier {
     }
   }
 
-  /// Connect to device
+  // ── Scan & Select (BLE only) ───────────────────────────────────
+
+  Future<void> startScan() async {
+    if (_repository is! BleDeviceRepository) return;
+    try {
+      _error = null;
+      notifyListeners();
+      await _repository.startScan();
+      notifyListeners();
+    } catch (e) {
+      _error = 'Scan failed: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> stopScan() async {
+    if (_repository is! BleDeviceRepository) return;
+    await _repository.stopScan();
+    notifyListeners();
+  }
+
+  void selectDevice(BluetoothDevice device) {
+    if (_repository is BleDeviceRepository) {
+      _repository.selectDevice(device);
+    }
+  }
+
+  // ── Connect / Disconnect ───────────────────────────────────────
+
   Future<bool> connect() async {
     try {
       _isLoading = true;
@@ -79,7 +128,6 @@ class DeviceController extends ChangeNotifier {
     }
   }
 
-  /// Disconnect from device
   Future<void> disconnect() async {
     try {
       _isLoading = true;
@@ -98,7 +146,8 @@ class DeviceController extends ChangeNotifier {
     }
   }
 
-  /// Sync data with device
+  // ── Sync ───────────────────────────────────────────────────────
+
   Future<bool> syncDevice() async {
     try {
       _isSyncing = true;
@@ -123,7 +172,8 @@ class DeviceController extends ChangeNotifier {
     }
   }
 
-  /// Start monitoring connection status changes
+  // ── Monitoring ─────────────────────────────────────────────────
+
   void _startConnectionMonitoring() {
     _connectionSubscription = _repository.watchConnectionStatus().listen(
       (connection) {
@@ -137,7 +187,6 @@ class DeviceController extends ChangeNotifier {
     );
   }
 
-  /// Refresh connection status
   Future<void> refresh() async {
     await loadConnectionStatus();
   }
