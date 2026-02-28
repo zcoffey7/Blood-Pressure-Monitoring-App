@@ -142,7 +142,7 @@ class BloodPressureMonitorApp extends StatelessWidget {
     final appBarBg = isDark ? AppColors.darkSurface : AppColors.primary;
     final outlinedFg = isDark ? AppColors.primary : AppColors.buttonSecondary;
 
-    final baseTextTheme = TextTheme(
+    const baseTextTheme = TextTheme(
       displayLarge: AppTextStyles.heading1,
       displayMedium: AppTextStyles.heading2,
       displaySmall: AppTextStyles.heading3,

@@ -400,8 +400,8 @@ class _QuestionnaireHistoryScreenState
     if (confirmed == true && mounted) {
       await controller.deleteResponse(response.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Response deleted'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Response deleted'),
           backgroundColor: AppColors.info,
           behavior: SnackBarBehavior.floating,
         ));
@@ -419,7 +419,7 @@ class _QuestionnaireHistoryScreenState
             Icon(Icons.assignment_outlined,
                 size: 80, color: AppColors.textHint(context)),
             const SizedBox(height: 16),
-            Text('No Responses Yet', style: AppTextStyles.heading2),
+            const Text('No Responses Yet', style: AppTextStyles.heading2),
             const SizedBox(height: 8),
             Text('Complete a questionnaire to see your history here.',
                 style: AppTextStyles.bodyLarge
@@ -440,7 +440,7 @@ class _QuestionnaireHistoryScreenState
           children: [
             const Icon(Icons.error_outline, size: 64, color: AppColors.danger),
             const SizedBox(height: 16),
-            Text('Error', style: AppTextStyles.heading2),
+            const Text('Error', style: AppTextStyles.heading2),
             const SizedBox(height: 8),
             Text(error,
                 style: AppTextStyles.bodyLarge, textAlign: TextAlign.center),

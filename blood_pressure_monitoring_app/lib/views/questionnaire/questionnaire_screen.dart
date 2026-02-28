@@ -310,8 +310,8 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
     setState(() => _isSubmitting = false);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Questionnaire submitted successfully!'),
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Questionnaire submitted successfully!'),
         backgroundColor: AppColors.normal,
         behavior: SnackBarBehavior.floating,
       ));
@@ -357,7 +357,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: AppColors.danger),
             const SizedBox(height: 16),
-            Text('Error', style: AppTextStyles.heading2),
+            const Text('Error', style: AppTextStyles.heading2),
             const SizedBox(height: 8),
             Text(error,
                 style: AppTextStyles.bodyLarge, textAlign: TextAlign.center),

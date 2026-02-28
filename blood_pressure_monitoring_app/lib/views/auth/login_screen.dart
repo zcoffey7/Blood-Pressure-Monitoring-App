@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.favorite, size: 80, color: AppColors.primary),
+                  const Icon(Icons.favorite, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
                   Text('BP Monitor',
                       style: AppTextStyles.heading1
@@ -115,8 +115,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Please enter your password';
-                      if (v.length < 6)
+                      if (v.length < 6) {
                         return 'Password must be at least 6 characters';
+                      }
                       return null;
                     },
                   ),
