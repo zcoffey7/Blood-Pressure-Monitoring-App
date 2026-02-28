@@ -12,11 +12,14 @@ import 'views/questionnaire/questionnaire_screen.dart';
 import 'controllers/blood_pressure_controller.dart';
 import 'controllers/device_controller.dart';
 import 'controllers/questionnaire_controller.dart';
+import 'controllers/alert_controller.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/theme_controller.dart';
-import 'repositories/blood_pressure_repository.dart';
+import 'repositories/firebase_blood_pressure_repository.dart';
+import 'repositories/firebase_questionnaire_repository.dart';
+import 'repositories/alert_repository.dart';
 import 'repositories/device_repository.dart';
-import 'repositories/questionnaire_repository.dart';
+import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
 
@@ -46,27 +49,19 @@ void main() async {
   }
 
   notificationService.onNotificationTap = (payload) {
-    if (payload == 'questionnaire') {
+    if (payload == 'symptom_tracker') {
       navigatorKey.currentState?.push(
         MaterialPageRoute(
           builder: (context) =>
-              const QuestionnaireScreen(templateId: 'orthostatic_assessment'),
+              const QuestionnaireScreen(templateId: 'symptom_tracker'),
         ),
       );
     }
   };
 
-  final bpRepository = MockBloodPressureRepository();
-  final deviceRepository = MockDeviceRepository();
-  final questionnaireRepository = MockQuestionnaireRepository();
   final authService = AuthService();
 
-  runApp(BloodPressureMonitorApp(
-    bpRepository: bpRepository,
-    deviceRepository: deviceRepository,
-    questionnaireRepository: questionnaireRepository,
-    authService: authService,
-  ));
+  runApp(BloodPressureMonitorApp(authService: authService));
 }
 
 class _ErrorApp extends StatelessWidget {
@@ -96,16 +91,10 @@ class _ErrorApp extends StatelessWidget {
 }
 
 class BloodPressureMonitorApp extends StatelessWidget {
-  final BloodPressureRepository bpRepository;
-  final DeviceRepository deviceRepository;
-  final QuestionnaireRepository questionnaireRepository;
   final AuthService authService;
 
   const BloodPressureMonitorApp({
     super.key,
-    required this.bpRepository,
-    required this.deviceRepository,
-    required this.questionnaireRepository,
     required this.authService,
   });
 
@@ -115,17 +104,6 @@ class BloodPressureMonitorApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeController()),
         ChangeNotifierProvider(create: (_) => AuthController(authService)),
-        ChangeNotifierProvider(
-            create: (_) => BloodPressureController(bpRepository)),
-        ChangeNotifierProvider(
-            create: (_) => DeviceController(deviceRepository)),
-        ChangeNotifierProvider(
-          create: (_) => QuestionnaireController(
-            questionnaireRepository,
-            userIdProvider: () =>
-                authService.currentUser?.uid ?? 'anonymous',
-          ),
-        ),
       ],
       child: Consumer<ThemeController>(
         builder: (context, themeController, _) {
@@ -156,7 +134,8 @@ class BloodPressureMonitorApp extends StatelessWidget {
     final cardBorder =
         isDark ? AppColors.darkCardBorder : AppColors.lightCardBorder;
     final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
-    final inputFill = isDark ? AppColors.darkInputFill : AppColors.lightInputFill;
+    final inputFill =
+        isDark ? AppColors.darkInputFill : AppColors.lightInputFill;
     final indicatorAlpha = isDark ? 0.2 : 0.12;
 
     final appBarFg = isDark ? AppColors.darkTextPrimary : Colors.white;
@@ -280,8 +259,51 @@ class AuthWrapper extends StatelessWidget {
           return const LoginScreen();
         }
 
-        return const MainNavigation();
+        final user = snapshot.data!;
+        return _AuthenticatedProviders(
+          userId: user.uid,
+          child: const MainNavigation(),
+        );
       },
+    );
+  }
+}
+
+/// Provides user-scoped data providers that depend on authentication.
+/// Keyed by userId so providers recreate when user changes.
+class _AuthenticatedProviders extends StatelessWidget {
+  final String userId;
+  final Widget child;
+
+  const _AuthenticatedProviders({
+    required this.userId,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final firestoreService = FirestoreService();
+    firestoreService.initializeUserDocument();
+
+    final bpRepo = FirebaseBloodPressureRepository(firestoreService);
+    final questionnaireRepo = FirebaseQuestionnaireRepository(firestoreService);
+    final alertRepo = FirebaseAlertRepository(firestoreService);
+    final deviceRepo = MockDeviceRepository();
+
+    return MultiProvider(
+      key: ValueKey(userId),
+      providers: [
+        ChangeNotifierProvider(
+            create: (_) => BloodPressureController(bpRepo)),
+        ChangeNotifierProvider(
+            create: (_) => DeviceController(deviceRepo)),
+        ChangeNotifierProvider(
+            create: (_) =>
+                QuestionnaireController(questionnaireRepo, userId: userId)),
+        ChangeNotifierProvider(
+            create: (_) => AlertController(alertRepo)),
+      ],
+      child: child,
     );
   }
 }

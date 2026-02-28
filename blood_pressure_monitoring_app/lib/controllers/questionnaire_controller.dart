@@ -9,7 +9,7 @@ import '../repositories/questionnaire_repository.dart';
 /// Uses Provider for state management
 class QuestionnaireController extends ChangeNotifier {
   final QuestionnaireRepository _repository;
-  final String Function() _getUserId;
+  final String _userId;
 
   // State variables
   QuestionnaireTemplate? _currentTemplate;
@@ -17,12 +17,11 @@ class QuestionnaireController extends ChangeNotifier {
   List<QuestionnaireResponse> _responseHistory = [];
   bool _isLoading = false;
   String? _error;
+  bool _isDisposed = false;
   final Uuid _uuid = const Uuid();
 
-  QuestionnaireController(
-    this._repository, {
-    String Function()? userIdProvider,
-  }) : _getUserId = userIdProvider ?? (() => 'default_user');
+  QuestionnaireController(this._repository, {String userId = 'default_user'})
+      : _userId = userId;
 
   // Getters
   QuestionnaireTemplate? get currentTemplate => _currentTemplate;
@@ -48,7 +47,7 @@ class QuestionnaireController extends ChangeNotifier {
       _activeResponse = QuestionnaireResponse(
         id: _uuid.v4(),
         templateId: templateId,
-        userId: _getUserId(),
+        userId: _userId,
         answers: [],
         startedAt: DateTime.now(),
         isComplete: false,
@@ -210,15 +209,14 @@ class QuestionnaireController extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final userId = _getUserId();
       if (startDate != null && endDate != null) {
         _responseHistory = await _repository.getResponsesByDateRange(
           startDate: startDate,
           endDate: endDate,
-          userId: userId,
+          userId: _userId,
         );
       } else {
-        _responseHistory = await _repository.getResponsesByUser(userId);
+        _responseHistory = await _repository.getResponsesByUser(_userId);
       }
 
       _isLoading = false;
@@ -235,7 +233,7 @@ class QuestionnaireController extends ChangeNotifier {
     try {
       return await _repository.getLatestResponse(
         templateId: templateId,
-        userId: _getUserId(),
+        userId: _userId,
       );
     } catch (e) {
       _error = 'Failed to load latest response: $e';
@@ -336,5 +334,16 @@ class QuestionnaireController extends ChangeNotifier {
   /// Refresh all data
   Future<void> refresh() async {
     await loadResponseHistory();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

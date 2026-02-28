@@ -135,7 +135,10 @@ class NotificationService {
       payload: 'questionnaire', // Payload to identify notification type
     );
 
-    debugPrint('Notification scheduled for: $scheduledDate');
+    assert(() {
+      debugPrint('Notification scheduled for: $scheduledDate');
+      return true;
+    }());
   }
 
   /// Cancel the daily check-in reminder

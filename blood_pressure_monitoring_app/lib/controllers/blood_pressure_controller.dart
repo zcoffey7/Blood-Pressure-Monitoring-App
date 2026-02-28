@@ -14,6 +14,7 @@ class BloodPressureController extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _isPaused = false;
+  bool _isDisposed = false;
   StreamSubscription<BloodPressureReading>? _realtimeSubscription;
 
   BloodPressureController(this._repository, {bool enableRealtime = true}) {
@@ -116,7 +117,13 @@ class BloodPressureController extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _realtimeSubscription?.cancel();
     super.dispose();
   }
