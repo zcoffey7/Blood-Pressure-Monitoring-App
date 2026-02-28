@@ -242,7 +242,7 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.speed_rounded,
+                    const Icon(Icons.speed_rounded,
                         size: 20, color: AppColors.systolic),
                     const SizedBox(width: 8),
                     Text(
@@ -271,7 +271,7 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.favorite_rounded,
+                    const Icon(Icons.favorite_rounded,
                         size: 20, color: AppColors.danger),
                     const SizedBox(width: 8),
                     Text(

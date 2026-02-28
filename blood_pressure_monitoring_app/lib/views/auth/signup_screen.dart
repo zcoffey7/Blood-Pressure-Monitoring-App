@@ -73,7 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.person_add, size: 80, color: AppColors.primary),
+                  const Icon(Icons.person_add, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
                   Text('Join BP Monitor',
                       style: AppTextStyles.heading2
@@ -141,8 +141,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'Please enter a password';
-                      if (v.length < 6)
+                      if (v.length < 6) {
                         return 'Password must be at least 6 characters';
+                      }
                       return null;
                     },
                   ),
@@ -167,10 +168,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty)
+                      if (v == null || v.isEmpty) {
                         return 'Please confirm your password';
-                      if (v != _passwordController.text)
+                      }
+                      if (v != _passwordController.text) {
                         return 'Passwords do not match';
+                      }
                       return null;
                     },
                   ),

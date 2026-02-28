@@ -272,15 +272,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           await _notificationService.scheduleDailyCheckInReminder();
           if (!mounted) return;
           setState(() => _notificationsEnabled = true);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('Daily reminder set for 7:00 PM'),
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Daily reminder set for 7:00 PM'),
             backgroundColor: AppColors.normal,
             behavior: SnackBarBehavior.floating,
           ));
         } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                const Text('Please enable notifications in system settings'),
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Please enable notifications in system settings'),
             backgroundColor: AppColors.warning,
             behavior: SnackBarBehavior.floating,
           ));
@@ -289,16 +288,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await _notificationService.cancelDailyCheckInReminder();
         if (!mounted) return;
         setState(() => _notificationsEnabled = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Daily reminder disabled'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Daily reminder disabled'),
           backgroundColor: AppColors.info,
           behavior: SnackBarBehavior.floating,
         ));
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Failed to update notification settings'),
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Failed to update notification settings'),
         backgroundColor: AppColors.danger,
         behavior: SnackBarBehavior.floating,
       ));
@@ -313,13 +312,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Sign Out', style: AppTextStyles.heading3),
+        title: const Text('Sign Out', style: AppTextStyles.heading3),
         content:
-            Text('Are you sure you want to sign out?', style: AppTextStyles.bodyLarge),
+            const Text('Are you sure you want to sign out?', style: AppTextStyles.bodyLarge),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Cancel', style: AppTextStyles.bodyLarge)),
+              child: const Text('Cancel', style: AppTextStyles.bodyLarge)),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
@@ -332,8 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (shouldSignOut == true) {
       await authController.signOut();
-      messenger.showSnackBar(SnackBar(
-        content: const Text('Successfully signed out'),
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Successfully signed out'),
         backgroundColor: AppColors.info,
         behavior: SnackBarBehavior.floating,
       ));

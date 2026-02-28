@@ -31,10 +31,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Password reset email sent! Check your inbox.'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Password reset email sent! Check your inbox.'),
           backgroundColor: AppColors.normal,
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ));
         Navigator.pop(context);
       } else if (authController.error != null) {
@@ -68,7 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.lock_reset, size: 80, color: AppColors.primary),
+                  const Icon(Icons.lock_reset, size: 80, color: AppColors.primary),
                   const SizedBox(height: 24),
                   Text('Forgot Password?',
                       style: AppTextStyles.heading2

@@ -47,7 +47,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
           minValue: 0,
           maxValue: 10,
         ),
-        Question(
+        const Question(
           id: 'fatigue_level',
           text: 'Current fatigue level: Rate your current level of fatigue.',
           type: QuestionType.ratingWithLabels,
@@ -120,7 +120,7 @@ class FirebaseQuestionnaireRepository implements QuestionnaireRepository {
           minValue: 0,
           maxValue: 10,
         ),
-        Question(
+        const Question(
           id: 'fatigue_score',
           text:
               'Fatigue within 1 hour of waking: Rate your fatigue level.',
