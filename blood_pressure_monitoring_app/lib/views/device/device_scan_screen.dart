@@ -47,21 +47,21 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
       if (mounted) setState(() => _results = results);
     });
 
-    try {
-      await _controller.startScan();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().contains('permission')
-                  ? 'Bluetooth permissions are required to scan for devices. '
-                    'Please grant permissions in Settings.'
-                  : 'Failed to start scan: $e',
-            ),
+    await _controller.startScan();
+    if (!mounted) return;
+
+    final error = _controller.error;
+    if (error != null && error.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toLowerCase().contains('permission')
+                ? 'Bluetooth permissions are required to scan for devices. '
+                  'Please grant permissions in Settings.'
+                : error,
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
