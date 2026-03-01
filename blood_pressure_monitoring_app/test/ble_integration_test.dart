@@ -219,7 +219,7 @@ void main() {
     });
 
     test('connectDevice throws when no device selected', () async {
-      expect(() => repo.connectDevice(), throwsException);
+      await expectLater(repo.connectDevice(), throwsException);
     });
 
     test('connectDevice succeeds after selectDevice', () async {
