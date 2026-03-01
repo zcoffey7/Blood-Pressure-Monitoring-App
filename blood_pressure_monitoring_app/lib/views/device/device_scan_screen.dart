@@ -20,16 +20,16 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
   StreamSubscription<List<ScanResult>>? _scanSub;
   List<ScanResult> _results = [];
   bool _connecting = false;
+  late final DeviceController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = context.read<DeviceController>();
     _startScan();
   }
 
   Future<void> _startScan() async {
-    final controller = context.read<DeviceController>();
-
     final bluetoothOn = await FlutterBluePlus.adapterState.first;
     if (bluetoothOn != BluetoothAdapterState.on) {
       if (mounted) {
@@ -43,12 +43,12 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
     }
 
     _scanSub?.cancel();
-    _scanSub = controller.scanResults.listen((results) {
+    _scanSub = _controller.scanResults.listen((results) {
       if (mounted) setState(() => _results = results);
     });
 
     try {
-      await controller.startScan();
+      await _controller.startScan();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -69,10 +69,9 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
     if (_connecting) return;
 
     setState(() => _connecting = true);
-    final controller = context.read<DeviceController>();
 
-    controller.selectDevice(result.device);
-    final success = await controller.connect();
+    _controller.selectDevice(result.device);
+    final success = await _controller.connect();
 
     if (!mounted) return;
 
@@ -82,7 +81,7 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
       setState(() => _connecting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(controller.error ?? 'Failed to connect'),
+          content: Text(_controller.error ?? 'Failed to connect'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -92,7 +91,7 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
   @override
   void dispose() {
     _scanSub?.cancel();
-    context.read<DeviceController>().stopScan();
+    _controller.stopScan();
     super.dispose();
   }
 
