@@ -53,7 +53,7 @@ void main() {
     expect(find.text('Live Monitoring'), findsOneWidget);
 
     expect(find.text('Home'), findsOneWidget);
-    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Check-Ins'), findsOneWidget);
     expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
 
@@ -70,11 +70,11 @@ void main() {
 
     expect(find.text('Live Monitoring'), findsOneWidget);
 
-    await tester.tap(find.text('History'));
+    await tester.tap(find.text('Check-Ins'));
     await tester.pump();
 
-    // History screen header shows "Health Check-Ins"
-    expect(find.text('Health Check-Ins'), findsOneWidget);
+    // "Check-Ins" appears in both nav bar and screen AppBar
+    expect(find.text('Check-Ins'), findsNWidgets(2));
 
     await tester.tap(find.text('Alerts'));
     await tester.pump();

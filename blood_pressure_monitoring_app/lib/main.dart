@@ -18,7 +18,8 @@ import 'controllers/theme_controller.dart';
 import 'repositories/blood_pressure_repository.dart';
 import 'repositories/firebase_questionnaire_repository.dart';
 import 'repositories/alert_repository.dart';
-import 'repositories/device_repository.dart';
+import 'repositories/ble_device_repository.dart';
+import 'services/bluetooth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
@@ -280,7 +281,8 @@ class _AuthenticatedProvidersState extends State<_AuthenticatedProviders> {
   late final MockBloodPressureRepository _bpRepo;
   late final FirebaseQuestionnaireRepository _questionnaireRepo;
   late final FirebaseAlertRepository _alertRepo;
-  late final MockDeviceRepository _deviceRepo;
+  late final BluetoothService _bleService;
+  late final BleDeviceRepository _deviceRepo;
 
   @override
   void initState() {
@@ -291,7 +293,8 @@ class _AuthenticatedProvidersState extends State<_AuthenticatedProviders> {
     _bpRepo = MockBloodPressureRepository();
     _questionnaireRepo = FirebaseQuestionnaireRepository(_firestoreService);
     _alertRepo = FirebaseAlertRepository(_firestoreService);
-    _deviceRepo = MockDeviceRepository();
+    _bleService = BluetoothService();
+    _deviceRepo = BleDeviceRepository(_bleService);
   }
 
   @override

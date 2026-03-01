@@ -3,6 +3,7 @@
 class DeviceConnection {
   final bool isConnected;
   final int batteryLevel; // 0-100
+  final int? heartRate; // BPM from BLE notify, null when unavailable
   final DateTime? lastSyncTime;
   final String deviceName;
   final ConnectionType connectionType;
@@ -10,6 +11,7 @@ class DeviceConnection {
   const DeviceConnection({
     required this.isConnected,
     required this.batteryLevel,
+    this.heartRate,
     this.lastSyncTime,
     required this.deviceName,
     required this.connectionType,
@@ -20,6 +22,7 @@ class DeviceConnection {
     return DeviceConnection(
       isConnected: json['isConnected'] as bool,
       batteryLevel: json['batteryLevel'] as int,
+      heartRate: json['heartRate'] as int?,
       lastSyncTime: json['lastSyncTime'] != null
           ? DateTime.parse(json['lastSyncTime'] as String)
           : null,
@@ -35,6 +38,7 @@ class DeviceConnection {
     return {
       'isConnected': isConnected,
       'batteryLevel': batteryLevel,
+      'heartRate': heartRate,
       'lastSyncTime': lastSyncTime?.toIso8601String(),
       'deviceName': deviceName,
       'connectionType': connectionType.name,
@@ -45,6 +49,7 @@ class DeviceConnection {
   DeviceConnection copyWith({
     bool? isConnected,
     int? batteryLevel,
+    int? heartRate,
     DateTime? lastSyncTime,
     String? deviceName,
     ConnectionType? connectionType,
@@ -52,6 +57,7 @@ class DeviceConnection {
     return DeviceConnection(
       isConnected: isConnected ?? this.isConnected,
       batteryLevel: batteryLevel ?? this.batteryLevel,
+      heartRate: heartRate ?? this.heartRate,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
       deviceName: deviceName ?? this.deviceName,
       connectionType: connectionType ?? this.connectionType,
@@ -76,6 +82,7 @@ class DeviceConnection {
     return other is DeviceConnection &&
         other.isConnected == isConnected &&
         other.batteryLevel == batteryLevel &&
+        other.heartRate == heartRate &&
         other.lastSyncTime == lastSyncTime &&
         other.deviceName == deviceName &&
         other.connectionType == connectionType;
@@ -86,6 +93,7 @@ class DeviceConnection {
     return Object.hash(
       isConnected,
       batteryLevel,
+      heartRate,
       lastSyncTime,
       deviceName,
       connectionType,
