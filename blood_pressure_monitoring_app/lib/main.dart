@@ -298,6 +298,12 @@ class _AuthenticatedProvidersState extends State<_AuthenticatedProviders> {
   }
 
   @override
+  void dispose() {
+    _deviceRepo.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       key: ValueKey(widget.userId),

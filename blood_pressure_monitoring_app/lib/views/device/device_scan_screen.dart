@@ -47,7 +47,22 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
       if (mounted) setState(() => _results = results);
     });
 
-    await controller.startScan();
+    try {
+      await controller.startScan();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString().contains('permission')
+                  ? 'Bluetooth permissions are required to scan for devices. '
+                    'Please grant permissions in Settings.'
+                  : 'Failed to start scan: $e',
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _connectToDevice(ScanResult result) async {
