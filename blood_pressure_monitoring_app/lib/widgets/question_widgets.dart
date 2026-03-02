@@ -413,6 +413,168 @@ class _TextQuestionWidgetState extends State<TextQuestionWidget> {
   }
 }
 
+/// Widget for blood pressure input (systolic + diastolic)
+/// Follows SRP - Only handles BP reading entry UI
+class BloodPressureInputWidget extends StatefulWidget {
+  final Question question;
+  final Map<String, dynamic>? currentValue;
+  final Function(Map<String, int>) onChanged;
+
+  const BloodPressureInputWidget({
+    super.key,
+    required this.question,
+    required this.currentValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<BloodPressureInputWidget> createState() =>
+      _BloodPressureInputWidgetState();
+}
+
+class _BloodPressureInputWidgetState extends State<BloodPressureInputWidget> {
+  late final TextEditingController _systolicController;
+  late final TextEditingController _diastolicController;
+
+  @override
+  void initState() {
+    super.initState();
+    _systolicController = TextEditingController(
+      text: widget.currentValue?['systolic']?.toString() ?? '',
+    );
+    _diastolicController = TextEditingController(
+      text: widget.currentValue?['diastolic']?.toString() ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(BloodPressureInputWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentValue != widget.currentValue) {
+      _systolicController.text =
+          widget.currentValue?['systolic']?.toString() ?? '';
+      _diastolicController.text =
+          widget.currentValue?['diastolic']?.toString() ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _systolicController.dispose();
+    _diastolicController.dispose();
+    super.dispose();
+  }
+
+  void _emitValue() {
+    final sys = int.tryParse(_systolicController.text);
+    final dia = int.tryParse(_diastolicController.text);
+    if (sys != null && dia != null) {
+      widget.onChanged({'systolic': sys, 'diastolic': dia});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.question.text, style: AppTextStyles.bodyLarge),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: _BPField(
+                label: 'Systolic',
+                hint: 'e.g. 120',
+                controller: _systolicController,
+                onChanged: (_) => _emitValue(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text('/',
+                  style: AppTextStyles.heading1
+                      .copyWith(color: AppColors.textSecondary(context))),
+            ),
+            Expanded(
+              child: _BPField(
+                label: 'Diastolic',
+                hint: 'e.g. 80',
+                controller: _diastolicController,
+                onChanged: (_) => _emitValue(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'mmHg',
+          style: AppTextStyles.bodySmall
+              .copyWith(color: AppColors.textSecondary(context)),
+        ),
+      ],
+    );
+  }
+}
+
+class _BPField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _BPField({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTextStyles.bodySmall
+                .copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.heading2,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: AppTextStyles.heading2
+                .copyWith(color: AppColors.textHint(context)),
+            filled: true,
+            fillColor: AppColors.cardBackground(context),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: AppColors.divider(context), width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: AppColors.divider(context), width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Widget for multiple choice questions
 /// Follows SRP - Only handles multiple choice UI
 class MultipleChoiceQuestionWidget extends StatelessWidget {

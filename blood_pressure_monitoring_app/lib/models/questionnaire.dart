@@ -7,6 +7,7 @@ enum QuestionType {
   dateTime, // Date and time picker
   multipleChoice, // Single selection from options
   table, // For BP measurement table
+  bloodPressureInput, // Systolic + diastolic number entry
 }
 
 /// Model representing a single question in the questionnaire

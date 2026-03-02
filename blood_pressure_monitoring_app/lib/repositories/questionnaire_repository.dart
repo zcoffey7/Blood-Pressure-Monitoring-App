@@ -94,17 +94,18 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           },
         ),
         const Question(
+          id: 'last_meal_day',
+          text: 'When was your last meal?',
+          type: QuestionType.multipleChoice,
+          required: false,
+          options: ['Today', 'Yesterday'],
+        ),
+        const Question(
           id: 'other_symptoms',
           text: 'Other symptoms',
           type: QuestionType.textInput,
           required: false,
           placeholder: 'Describe any other symptoms...',
-        ),
-        const Question(
-          id: 'last_meal_time',
-          text: 'Last Meal Time',
-          type: QuestionType.dateTime,
-          required: false,
         ),
       ],
     );
@@ -123,8 +124,15 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           required: false,
         ),
         const Question(
+          id: 'last_meal_day',
+          text: 'When was your last meal?',
+          type: QuestionType.multipleChoice,
+          required: false,
+          options: ['Today', 'Yesterday'],
+        ),
+        const Question(
           id: 'last_meal_time',
-          text: "Yesterday's Last Meal Time",
+          text: 'What time was your last meal?',
           type: QuestionType.dateTime,
           required: false,
         ),
@@ -191,13 +199,6 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           required: false,
         ),
         const Question(
-          id: 'arm_used',
-          text: 'Which arm?',
-          type: QuestionType.multipleChoice,
-          required: false,
-          options: ['Left', 'Right'],
-        ),
-        const Question(
           id: 'posture',
           text: 'Posture',
           type: QuestionType.multipleChoice,
@@ -205,11 +206,10 @@ class MockQuestionnaireRepository implements QuestionnaireRepository {
           options: ['Lying down', 'Sitting', 'Standing'],
         ),
         const Question(
-          id: 'bp_measurements',
-          text: 'Blood pressure measurements',
-          type: QuestionType.table,
+          id: 'bp_readings',
+          text: 'What were your blood pressure readings?',
+          type: QuestionType.bloodPressureInput,
           required: false,
-          options: ['Left', 'Right'],
         ),
         const Question(
           id: 'notes',
