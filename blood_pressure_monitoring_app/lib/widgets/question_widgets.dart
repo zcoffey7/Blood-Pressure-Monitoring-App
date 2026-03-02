@@ -548,7 +548,10 @@ class _BPField extends StatelessWidget {
           controller: controller,
           onChanged: onChanged,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(3),
+          ],
           textAlign: TextAlign.center,
           style: AppTextStyles.heading2,
           decoration: InputDecoration(
