@@ -232,6 +232,13 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
             ),
           ],
         );
+      case QuestionType.bloodPressureInput:
+        return BloodPressureInputWidget(
+          question: question,
+          currentValue: currentValue as Map<String, dynamic>?,
+          onChanged: (v) =>
+              controller.answerQuestion(questionId: question.id, value: v),
+        );
     }
   }
 
