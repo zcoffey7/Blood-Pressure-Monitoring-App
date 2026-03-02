@@ -356,14 +356,14 @@ class _QuestionnaireHistoryScreenState
       'fatigue_level': 'Fatigue Level',
       'fatigue_score': 'Fatigue Score',
       'other_symptoms': 'Other Symptoms',
+      'last_meal_day': 'Last Meal',
       'last_meal_time': 'Last Meal Time',
       'bedtime': 'Bed Time',
       'wakeup_time': 'Wake-up Time',
       'sleep_quality': 'Sleep Quality',
       'notes': 'Notes',
-      'arm_used': 'Arm Used',
       'posture': 'Posture',
-      'bp_measurements': 'BP Measurements',
+      'bp_readings': 'BP Readings',
     };
     return labels[questionId] ?? questionId;
   }
@@ -375,6 +375,11 @@ class _QuestionnaireHistoryScreenState
     }
     if (value is DateTime) {
       return DateFormat('MMM d, yyyy – h:mm a').format(value);
+    }
+    if (value is Map) {
+      final sys = value['systolic'];
+      final dia = value['diastolic'];
+      if (sys != null && dia != null) return '$sys / $dia mmHg';
     }
     return value.toString();
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
@@ -451,10 +452,14 @@ class _BloodPressureInputWidgetState extends State<BloodPressureInputWidget> {
   void didUpdateWidget(BloodPressureInputWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentValue != widget.currentValue) {
-      _systolicController.text =
-          widget.currentValue?['systolic']?.toString() ?? '';
-      _diastolicController.text =
-          widget.currentValue?['diastolic']?.toString() ?? '';
+      final newSys = widget.currentValue?['systolic']?.toString() ?? '';
+      final newDia = widget.currentValue?['diastolic']?.toString() ?? '';
+      if (_systolicController.text != newSys) {
+        _systolicController.text = newSys;
+      }
+      if (_diastolicController.text != newDia) {
+        _diastolicController.text = newDia;
+      }
     }
   }
 
@@ -543,6 +548,7 @@ class _BPField extends StatelessWidget {
           controller: controller,
           onChanged: onChanged,
           keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           textAlign: TextAlign.center,
           style: AppTextStyles.heading2,
           decoration: InputDecoration(
