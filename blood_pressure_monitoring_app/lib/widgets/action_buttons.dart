@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../controllers/blood_pressure_controller.dart';
+import '../controllers/ppg_controller.dart';
 import '../controllers/device_controller.dart';
 
 class ActionButtons extends StatefulWidget {
@@ -43,7 +43,7 @@ class _ActionButtonsState extends State<ActionButtons> {
   }
 
   Widget _buildPauseButton(BuildContext context) {
-    return Selector<BloodPressureController, bool>(
+    return Selector<PpgController, bool>(
       selector: (_, c) => c.isPaused,
       builder: (context, isPaused, _) {
         final isMonitoring = !isPaused;
@@ -51,7 +51,7 @@ class _ActionButtonsState extends State<ActionButtons> {
           onPressed: () => _handlePauseResume(context),
           icon: Icon(isMonitoring ? Icons.pause : Icons.play_arrow, size: 24),
           label: Text(
-            isMonitoring ? 'Pause Monitoring' : 'Resume Monitoring',
+            isMonitoring ? 'Pause' : 'Resume',
             style: AppTextStyles.button.copyWith(fontSize: 16),
           ),
           style: ElevatedButton.styleFrom(
@@ -86,7 +86,7 @@ class _ActionButtonsState extends State<ActionButtons> {
                 )
               : const Icon(Icons.sync, size: 24),
           label: Text(
-            isSyncing ? 'Syncing...' : 'Re-Sync Device',
+            isSyncing ? 'Syncing...' : 'Re-Sync',
             style: AppTextStyles.button.copyWith(
               fontSize: 16,
               color: isSyncing
@@ -111,21 +111,23 @@ class _ActionButtonsState extends State<ActionButtons> {
     );
   }
 
-  void _handlePauseResume(BuildContext context) {
-    final bpController = context.read<BloodPressureController>();
-    final isCurrentlyMonitoring = !bpController.isPaused;
+  Future<void> _handlePauseResume(BuildContext context) async {
+    final ppgController = context.read<PpgController>();
+    final isCurrentlyMonitoring = !ppgController.isPaused;
 
     if (isCurrentlyMonitoring) {
-      bpController.pauseMonitoring();
+      await ppgController.pause();
     } else {
-      bpController.resumeMonitoring();
+      await ppgController.resume();
     }
+
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCurrentlyMonitoring
-            ? 'Monitoring paused — Data updates stopped'
-            : 'Monitoring resumed — Data updates active'),
+            ? 'PPG stream paused'
+            : 'PPG stream resumed'),
         backgroundColor:
             isCurrentlyMonitoring ? AppColors.warning : AppColors.normal,
         duration: const Duration(seconds: 2),
@@ -138,7 +140,7 @@ class _ActionButtonsState extends State<ActionButtons> {
 
   Future<void> _handleSync(BuildContext context) async {
     final deviceController = context.read<DeviceController>();
-    final bpController = context.read<BloodPressureController>();
+    final ppgController = context.read<PpgController>();
 
     _syncRetryCount++;
     final success = await deviceController.syncDevice();
@@ -147,8 +149,7 @@ class _ActionButtonsState extends State<ActionButtons> {
 
     if (success) {
       _syncRetryCount = 0;
-      await bpController.refresh();
-      if (!context.mounted) return;
+      ppgController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -156,7 +157,7 @@ class _ActionButtonsState extends State<ActionButtons> {
             children: [
               Icon(Icons.check_circle, color: Colors.white),
               SizedBox(width: 12),
-              Text('Device synced successfully'),
+              Text('Device synced — PPG buffer cleared'),
             ],
           ),
           backgroundColor: AppColors.normal,

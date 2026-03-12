@@ -21,11 +21,9 @@ abstract class DeviceRepository {
 }
 
 /// Mock implementation for development
-/// TODO: Replace with real Bluetooth/WiFi implementation
 class MockDeviceRepository implements DeviceRepository {
   DeviceConnection _currentConnection = DeviceConnection(
     isConnected: true,
-    batteryLevel: 85,
     lastSyncTime: DateTime.now(),
     deviceName: 'BP Monitor Device',
     connectionType: ConnectionType.bluetooth,
@@ -33,14 +31,12 @@ class MockDeviceRepository implements DeviceRepository {
 
   @override
   Future<DeviceConnection> getConnectionStatus() async {
-    // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 100));
     return _currentConnection;
   }
 
   @override
   Future<bool> connectDevice() async {
-    // Simulate connection attempt
     await Future.delayed(const Duration(seconds: 2));
 
     _currentConnection = _currentConnection.copyWith(
@@ -53,15 +49,12 @@ class MockDeviceRepository implements DeviceRepository {
 
   @override
   Future<void> disconnectDevice() async {
-    // Simulate disconnection
     await Future.delayed(const Duration(milliseconds: 500));
-
     _currentConnection = _currentConnection.copyWith(isConnected: false);
   }
 
   @override
   Future<bool> syncDevice() async {
-    // Simulate sync operation
     await Future.delayed(const Duration(seconds: 1));
 
     if (_currentConnection.isConnected) {
@@ -76,20 +69,8 @@ class MockDeviceRepository implements DeviceRepository {
 
   @override
   Stream<DeviceConnection> watchConnectionStatus() async* {
-    // Simulate periodic battery level updates
     while (true) {
       await Future.delayed(const Duration(seconds: 10));
-
-      // Simulate battery drain (1% every 10 seconds in mock)
-      final newBatteryLevel = (_currentConnection.batteryLevel - 1).clamp(
-        0,
-        100,
-      );
-
-      _currentConnection = _currentConnection.copyWith(
-        batteryLevel: newBatteryLevel,
-      );
-
       yield _currentConnection;
     }
   }

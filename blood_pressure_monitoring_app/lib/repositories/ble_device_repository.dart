@@ -5,22 +5,19 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart'
     hide BluetoothService;
 
 import '../models/device_connection.dart';
+import '../models/ppg_packet.dart';
 import '../services/bluetooth_service.dart';
 import 'device_repository.dart';
 
 /// Real BLE implementation of [DeviceRepository].
-/// Connects to an ESP32 blood pressure monitor via Bluetooth Low Energy
-/// and streams heart rate + battery level from BLE notifications.
+/// Connects to the ESP32 PPG sensor board via Bluetooth Low Energy
+/// and streams parsed PPG packets from BLE notifications.
 class BleDeviceRepository implements DeviceRepository {
   final BluetoothService _bleService;
   final _connectionController = StreamController<DeviceConnection>.broadcast();
 
-  StreamSubscription<int>? _heartRateSub;
-  StreamSubscription<int>? _batterySub;
   StreamSubscription<BluetoothConnectionState>? _stateSub;
 
-  int _lastBattery = 0;
-  int? _lastHeartRate;
   BluetoothDevice? _targetDevice;
 
   BleDeviceRepository(this._bleService);
@@ -35,10 +32,23 @@ class BleDeviceRepository implements DeviceRepository {
 
   Future<void> stopScan() => _bleService.stopScan();
 
-  /// Set the device to connect to (chosen from scan results).
   void selectDevice(BluetoothDevice device) {
     _targetDevice = device;
   }
+
+  // ── PPG data (available to consumers that need raw samples) ────
+
+  /// Live PPG packets from the sensor. Active only while connected.
+  Stream<PpgPacket> get ppgStream => _bleService.ppgStream;
+
+  /// Sequence gap events for debugging / UI indicators.
+  Stream<PacketGap> get gapStream => _bleService.gapStream;
+
+  /// Pause BLE notifications (stops data from the sensor).
+  Future<void> pauseNotifications() => _bleService.pauseNotifications();
+
+  /// Resume BLE notifications (restarts data from the sensor).
+  Future<void> resumeNotifications() => _bleService.resumeNotifications();
 
   // ── DeviceRepository implementation ────────────────────────────
 
@@ -46,8 +56,6 @@ class BleDeviceRepository implements DeviceRepository {
   Future<DeviceConnection> getConnectionStatus() async {
     return DeviceConnection(
       isConnected: _bleService.isDeviceConnected,
-      batteryLevel: _lastBattery,
-      heartRate: _lastHeartRate,
       lastSyncTime: _bleService.isDeviceConnected ? DateTime.now() : null,
       deviceName: _bleService.connectedDevice?.platformName ??
           _targetDevice?.platformName ??
@@ -77,15 +85,11 @@ class BleDeviceRepository implements DeviceRepository {
   Future<void> disconnectDevice() async {
     _cancelSubscriptions();
     await _bleService.disconnect();
-    _lastHeartRate = null;
-    _lastBattery = 0;
     _emitStatus();
   }
 
   @override
   Future<bool> syncDevice() async {
-    // Real-time notify mode — no batch sync needed.
-    // Return true if connected so the UI shows success.
     return _bleService.isDeviceConnected;
   }
 
@@ -99,19 +103,8 @@ class BleDeviceRepository implements DeviceRepository {
   void _listenToStreams() {
     _cancelSubscriptions();
 
-    _heartRateSub = _bleService.heartRateStream.listen((hr) {
-      _lastHeartRate = hr;
-      _emitStatus();
-    });
-
-    _batterySub = _bleService.batteryLevelStream.listen((level) {
-      _lastBattery = level;
-      _emitStatus();
-    });
-
     _stateSub = _bleService.connectionState.listen((state) {
       if (state == BluetoothConnectionState.disconnected) {
-        _lastHeartRate = null;
         _emitStatus();
       }
     });
@@ -128,8 +121,6 @@ class BleDeviceRepository implements DeviceRepository {
   }
 
   void _cancelSubscriptions() {
-    _heartRateSub?.cancel();
-    _batterySub?.cancel();
     _stateSub?.cancel();
   }
 

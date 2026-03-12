@@ -1,36 +1,59 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' hide BluetoothService;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:blood_pressure_monitoring_app/constants/ble_constants.dart';
 import 'package:blood_pressure_monitoring_app/models/device_connection.dart';
+import 'package:blood_pressure_monitoring_app/models/ppg_packet.dart';
 import 'package:blood_pressure_monitoring_app/repositories/ble_device_repository.dart';
 import 'package:blood_pressure_monitoring_app/controllers/device_controller.dart';
 import 'package:blood_pressure_monitoring_app/services/bluetooth_service.dart';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/// Build a raw BLE notification payload matching the spec's binary format.
+Uint8List buildPpgPayload(int seq, List<int> samples) {
+  final length = BleConstants.packetHeaderBytes +
+      (BleConstants.sampleBytes * samples.length);
+  final bytes = Uint8List(length);
+  final view = ByteData.sublistView(bytes);
+  view.setUint32(0, seq, Endian.little);
+  view.setUint16(4, samples.length, Endian.little);
+  for (var i = 0; i < samples.length; i++) {
+    view.setUint32(
+        BleConstants.packetHeaderBytes + (i * BleConstants.sampleBytes),
+        samples[i],
+        Endian.little);
+  }
+  return bytes;
+}
+
 // ─── Fake BluetoothService ───────────────────────────────────────────────────
-// Replaces real BLE calls with controllable streams for testing.
 
 class FakeBluetoothService extends BluetoothService {
-  final hrController = StreamController<int>.broadcast();
-  final batteryController = StreamController<int>.broadcast();
+  final ppgController = StreamController<PpgPacket>.broadcast();
+  final gapCtrl = StreamController<PacketGap>.broadcast();
   final connStateController =
       StreamController<BluetoothConnectionState>.broadcast();
 
   bool _isConnected = false;
 
   @override
-  Stream<int> get heartRateStream => hrController.stream;
+  Stream<PpgPacket> get ppgStream => ppgController.stream;
 
   @override
-  Stream<int> get batteryLevelStream => batteryController.stream;
+  Stream<PacketGap> get gapStream => gapCtrl.stream;
 
   @override
   bool get isDeviceConnected => _isConnected;
 
   @override
-  BluetoothDevice? get connectedDevice =>
-      _isConnected ? BluetoothDevice(remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF')) : null;
+  BluetoothDevice? get connectedDevice => _isConnected
+      ? BluetoothDevice(
+          remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF'))
+      : null;
 
   @override
   Stream<BluetoothConnectionState> get connectionState =>
@@ -48,8 +71,17 @@ class FakeBluetoothService extends BluetoothService {
     connStateController.add(BluetoothConnectionState.disconnected);
   }
 
-  void simulateHeartRate(int bpm) => hrController.add(bpm);
-  void simulateBattery(int level) => batteryController.add(level);
+  void simulatePpgPacket(int seq, List<int> samples) {
+    ppgController.add(PpgPacket(packetSeq: seq, samples: samples));
+  }
+
+  void simulateGap(int expected, int received) {
+    gapCtrl.add(PacketGap(
+      expectedSeq: expected,
+      receivedSeq: received,
+      missedPackets: received - expected,
+    ));
+  }
 
   void simulateDisconnect() {
     _isConnected = false;
@@ -58,145 +90,129 @@ class FakeBluetoothService extends BluetoothService {
 
   @override
   void dispose() {
-    hrController.close();
-    batteryController.close();
+    ppgController.close();
+    gapCtrl.close();
     connStateController.close();
     super.dispose();
   }
 }
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
 void main() {
-  // ══════════════════════════════════════════════════════════════
-  // DeviceConnection model — heartRate field
-  // ══════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
+  // PpgPacket parser
+  // ════════════════════════════════════════════════════════════════
 
-  group('DeviceConnection model', () {
-    test('includes heartRate in constructor and getters', () {
-      const conn = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 85,
-        heartRate: 72,
-        deviceName: 'Test',
-        connectionType: ConnectionType.bluetooth,
-      );
+  group('PpgPacket.tryParse', () {
+    test('parses valid packet from spec example', () {
+      // Example from section 4: seq=25, count=3, samples=[1000, 1010, 1020]
+      final raw = buildPpgPayload(25, [1000, 1010, 1020]);
+      final pkt = PpgPacket.tryParse(raw);
 
-      expect(conn.heartRate, 72);
-      expect(conn.batteryLevel, 85);
-      expect(conn.isConnected, true);
+      expect(pkt, isNotNull);
+      expect(pkt!.packetSeq, 25);
+      expect(pkt.sampleCount, 3);
+      expect(pkt.samples, [1000, 1010, 1020]);
     });
 
-    test('heartRate defaults to null when omitted', () {
-      const conn = DeviceConnection(
-        isConnected: false,
-        batteryLevel: 50,
-        deviceName: 'Test',
-        connectionType: ConnectionType.bluetooth,
-      );
+    test('parses single-sample packet', () {
+      final raw = buildPpgPayload(0, [42]);
+      final pkt = PpgPacket.tryParse(raw);
 
-      expect(conn.heartRate, isNull);
+      expect(pkt, isNotNull);
+      expect(pkt!.packetSeq, 0);
+      expect(pkt.sampleCount, 1);
+      expect(pkt.samples, [42]);
     });
 
-    test('copyWith preserves heartRate', () {
-      const original = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 65,
-        deviceName: 'Device',
-        connectionType: ConnectionType.bluetooth,
-      );
+    test('parses zero-sample packet', () {
+      final raw = buildPpgPayload(99, []);
+      final pkt = PpgPacket.tryParse(raw);
 
-      final updated = original.copyWith(batteryLevel: 70);
-      expect(updated.heartRate, 65);
-      expect(updated.batteryLevel, 70);
+      expect(pkt, isNotNull);
+      expect(pkt!.packetSeq, 99);
+      expect(pkt.sampleCount, 0);
+      expect(pkt.samples, isEmpty);
     });
 
-    test('copyWith updates heartRate', () {
-      const original = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 65,
-        deviceName: 'Device',
-        connectionType: ConnectionType.bluetooth,
-      );
-
-      final updated = original.copyWith(heartRate: 90);
-      expect(updated.heartRate, 90);
-      expect(updated.batteryLevel, 80);
+    test('returns null for truncated header', () {
+      expect(PpgPacket.tryParse([0x00, 0x00]), isNull);
     });
 
-    test('toJson includes heartRate', () {
-      const conn = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 72,
-        deviceName: 'Device',
-        connectionType: ConnectionType.bluetooth,
-      );
-
-      final json = conn.toJson();
-      expect(json['heartRate'], 72);
+    test('returns null for length mismatch', () {
+      // Header says 3 samples but only 2 × 4 bytes follow
+      final raw = buildPpgPayload(1, [100, 200]);
+      // Tamper: set sample_count to 3 but keep 2 samples worth of data
+      raw[4] = 3;
+      expect(PpgPacket.tryParse(raw), isNull);
     });
 
-    test('fromJson parses heartRate', () {
-      final json = {
-        'isConnected': true,
-        'batteryLevel': 90,
-        'heartRate': 68,
-        'deviceName': 'Test',
-        'connectionType': 'bluetooth',
-      };
-
-      final conn = DeviceConnection.fromJson(json);
-      expect(conn.heartRate, 68);
-    });
-
-    test('fromJson handles null heartRate', () {
-      final json = {
-        'isConnected': true,
-        'batteryLevel': 90,
-        'heartRate': null,
-        'deviceName': 'Test',
-        'connectionType': 'bluetooth',
-      };
-
-      final conn = DeviceConnection.fromJson(json);
-      expect(conn.heartRate, isNull);
-    });
-
-    test('equality includes heartRate', () {
-      const a = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 72,
-        deviceName: 'D',
-        connectionType: ConnectionType.bluetooth,
-      );
-      const b = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 72,
-        deviceName: 'D',
-        connectionType: ConnectionType.bluetooth,
-      );
-      const c = DeviceConnection(
-        isConnected: true,
-        batteryLevel: 80,
-        heartRate: 90,
-        deviceName: 'D',
-        connectionType: ConnectionType.bluetooth,
-      );
-
-      expect(a, equals(b));
-      expect(a, isNot(equals(c)));
-      expect(a.hashCode, equals(b.hashCode));
+    test('returns null when sample count exceeds max', () {
+      final packet = Uint8List(6 + 51 * 4);
+      final view = ByteData.sublistView(packet);
+      view.setUint32(0, 0, Endian.little);
+      view.setUint16(4, 51, Endian.little); // exceeds maxSamplesPerPacket (50)
+      expect(PpgPacket.tryParse(packet), isNull);
     });
   });
 
-  // ══════════════════════════════════════════════════════════════
-  // BleDeviceRepository — connection & data streaming
-  // ══════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
+  // BLE Constants match the interface spec
+  // ════════════════════════════════════════════════════════════════
+
+  group('BleConstants', () {
+    test('service UUID matches spec', () {
+      expect(
+        BleConstants.serviceUuid.toString(),
+        'a1f6f5ff-bf33-4d42-9a21-e45dad587e23',
+      );
+    });
+
+    test('data characteristic UUID matches spec', () {
+      expect(
+        BleConstants.dataCharUuid.toString(),
+        'a1f6f5ff-bf33-4d42-9a21-e45dad587e24',
+      );
+    });
+
+    test('device name matches spec', () {
+      expect(BleConstants.deviceName, 'Sensor-Board');
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  // DeviceConnection model
+  // ════════════════════════════════════════════════════════════════
+
+  group('DeviceConnection model', () {
+    test('can be constructed without heartRate', () {
+      const conn = DeviceConnection(
+        isConnected: true,
+        deviceName: 'Sensor-Board',
+        connectionType: ConnectionType.bluetooth,
+      );
+
+      expect(conn.heartRate, isNull);
+      expect(conn.isConnected, true);
+    });
+
+    test('copyWith preserves fields', () {
+      const original = DeviceConnection(
+        isConnected: true,
+        deviceName: 'Sensor-Board',
+        connectionType: ConnectionType.bluetooth,
+      );
+
+      final updated = original.copyWith(isConnected: false);
+      expect(updated.isConnected, false);
+      expect(updated.deviceName, 'Sensor-Board');
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  // BleDeviceRepository
+  // ════════════════════════════════════════════════════════════════
 
   group('BleDeviceRepository', () {
     late FakeBluetoothService fakeBle;
@@ -214,7 +230,6 @@ void main() {
     test('getConnectionStatus returns disconnected initially', () async {
       final status = await repo.getConnectionStatus();
       expect(status.isConnected, false);
-      expect(status.heartRate, isNull);
       expect(status.connectionType, ConnectionType.bluetooth);
     });
 
@@ -234,45 +249,25 @@ void main() {
       expect(status.isConnected, true);
     });
 
-    test('heart rate updates flow through watchConnectionStatus', () async {
+    test('ppg packets flow through ppgStream', () async {
       final device = BluetoothDevice(
           remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF'));
       repo.selectDevice(device);
       await repo.connectDevice();
 
-      final updates = <DeviceConnection>[];
-      final sub = repo.watchConnectionStatus().listen(updates.add);
+      final packets = <PpgPacket>[];
+      final sub = repo.ppgStream.listen(packets.add);
 
-      // Allow the initial status emission from connectDevice
+      fakeBle.simulatePpgPacket(0, [1000, 1010]);
       await Future.delayed(Duration.zero);
 
-      fakeBle.simulateHeartRate(72);
+      fakeBle.simulatePpgPacket(1, [1020]);
       await Future.delayed(Duration.zero);
 
-      fakeBle.simulateHeartRate(75);
-      await Future.delayed(Duration.zero);
-
-      expect(updates.any((u) => u.heartRate == 72), true);
-      expect(updates.any((u) => u.heartRate == 75), true);
-
-      await sub.cancel();
-    });
-
-    test('battery updates flow through watchConnectionStatus', () async {
-      final device = BluetoothDevice(
-          remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF'));
-      repo.selectDevice(device);
-      await repo.connectDevice();
-
-      final updates = <DeviceConnection>[];
-      final sub = repo.watchConnectionStatus().listen(updates.add);
-
-      await Future.delayed(Duration.zero);
-
-      fakeBle.simulateBattery(85);
-      await Future.delayed(Duration.zero);
-
-      expect(updates.any((u) => u.batteryLevel == 85), true);
+      expect(packets.length, 2);
+      expect(packets[0].packetSeq, 0);
+      expect(packets[0].samples, [1000, 1010]);
+      expect(packets[1].packetSeq, 1);
 
       await sub.cancel();
     });
@@ -286,8 +281,6 @@ void main() {
 
       final status = await repo.getConnectionStatus();
       expect(status.isConnected, false);
-      expect(status.heartRate, isNull);
-      expect(status.batteryLevel, 0);
     });
 
     test('syncDevice returns true when connected', () async {
@@ -304,9 +297,9 @@ void main() {
     });
   });
 
-  // ══════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
   // DeviceController — BLE integration
-  // ══════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════
 
   group('DeviceController with BleDeviceRepository', () {
     late FakeBluetoothService fakeBle;
@@ -328,11 +321,6 @@ void main() {
       expect(controller.canScan, true);
     });
 
-    test('heartRate is null when disconnected', () async {
-      await controller.loadConnectionStatus();
-      expect(controller.heartRate, isNull);
-    });
-
     test('connect updates isConnected', () async {
       final device = BluetoothDevice(
           remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF'));
@@ -351,24 +339,6 @@ void main() {
       await controller.disconnect();
 
       expect(controller.isConnected, false);
-      expect(controller.heartRate, isNull);
-    });
-
-    test('heart rate updates reach controller via monitoring', () async {
-      final device = BluetoothDevice(
-          remoteId: const DeviceIdentifier('AA:BB:CC:DD:EE:FF'));
-
-      // Enable monitoring for this test
-      final monitoredController = DeviceController(repo, enableMonitoring: true);
-      monitoredController.selectDevice(device);
-      await monitoredController.connect();
-
-      fakeBle.simulateHeartRate(80);
-      await Future.delayed(const Duration(milliseconds: 50));
-
-      expect(monitoredController.heartRate, 80);
-
-      monitoredController.dispose();
     });
 
     test('error is set on connect failure without device selected', () async {

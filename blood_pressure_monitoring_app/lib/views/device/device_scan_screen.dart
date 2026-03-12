@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +32,11 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
 
   Future<void> _startScan() async {
     final bluetoothOn = await FlutterBluePlus.adapterState.first;
+
+    if (kDebugMode) {
+      debugPrint('SCAN: adapter state = $bluetoothOn');
+    }
+
     if (bluetoothOn != BluetoothAdapterState.on) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,6 +50,14 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
 
     _scanSub?.cancel();
     _scanSub = _controller.scanResults.listen((results) {
+      if (kDebugMode) {
+        debugPrint('SCAN: received ${results.length} result(s)');
+        for (final r in results) {
+          debugPrint('  → "${r.device.platformName}" '
+              '(${r.device.remoteId}) rssi=${r.rssi} '
+              'services=${r.advertisementData.serviceUuids}');
+        }
+      }
       if (mounted) setState(() => _results = results);
     });
 
@@ -170,7 +184,7 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
                 const SizedBox(height: 8),
                 Text(
                   controller.isScanning
-                      ? 'Make sure your BP Monitor is powered on and nearby.'
+                      ? 'Make sure your Sensor-Board is powered on and nearby.'
                       : 'Tap the refresh button to scan again.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium

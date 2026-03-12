@@ -7,18 +7,23 @@ import 'package:firebase_core_platform_interface/test.dart';
 import 'package:blood_pressure_monitoring_app/views/main_navigation.dart';
 import 'package:blood_pressure_monitoring_app/controllers/blood_pressure_controller.dart';
 import 'package:blood_pressure_monitoring_app/controllers/device_controller.dart';
+import 'package:blood_pressure_monitoring_app/controllers/ppg_controller.dart';
 import 'package:blood_pressure_monitoring_app/controllers/questionnaire_controller.dart';
 import 'package:blood_pressure_monitoring_app/controllers/theme_controller.dart';
 import 'package:blood_pressure_monitoring_app/controllers/auth_controller.dart';
+import 'package:blood_pressure_monitoring_app/repositories/ble_device_repository.dart';
 import 'package:blood_pressure_monitoring_app/repositories/device_repository.dart';
 import 'package:blood_pressure_monitoring_app/repositories/blood_pressure_repository.dart';
 import 'package:blood_pressure_monitoring_app/repositories/questionnaire_repository.dart';
 import 'package:blood_pressure_monitoring_app/services/auth_service.dart';
+import 'package:blood_pressure_monitoring_app/services/bluetooth_service.dart';
 
 /// Builds MainNavigation wrapped with all required providers,
 /// bypassing Firebase auth by providing mocked Firebase Core.
 Widget buildTestNavigation() {
   final authService = AuthService();
+  final bleService = BluetoothService();
+  final deviceRepo = BleDeviceRepository(bleService);
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => ThemeController()),
@@ -30,6 +35,8 @@ Widget buildTestNavigation() {
       ChangeNotifierProvider(
           create: (_) =>
               DeviceController(MockDeviceRepository(), enableMonitoring: false)),
+      ChangeNotifierProvider(
+          create: (_) => PpgController(deviceRepo)),
       ChangeNotifierProvider(
           create: (_) =>
               QuestionnaireController(MockQuestionnaireRepository())),

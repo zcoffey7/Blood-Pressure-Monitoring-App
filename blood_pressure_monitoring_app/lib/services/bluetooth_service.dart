@@ -4,20 +4,35 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../constants/ble_constants.dart';
+import '../models/ppg_packet.dart';
 
-/// Low-level BLE operations wrapper around flutter_blue_plus.
-/// Keeps the rest of the app BLE-library-agnostic.
+/// Low-level BLE wrapper for the ESP32 PPG sensor board.
+///
+/// Responsibilities:
+///  - Scan, connect, discover service/characteristic per the interface spec.
+///  - Enable notifications on the PPG data characteristic.
+///  - Parse incoming binary packets into [PpgPacket] objects.
+///  - Track packet_seq and report sequence gaps.
 class BluetoothService {
   BluetoothDevice? _connectedDevice;
-  final Map<String, BluetoothCharacteristic> _characteristics = {};
-  final _heartRateController = StreamController<int>.broadcast();
-  final _batteryLevelController = StreamController<int>.broadcast();
+  BluetoothCharacteristic? _dataCh;
   StreamSubscription<BluetoothConnectionState>? _connectionSub;
+  StreamSubscription<List<int>>? _notifySub;
+
+  final _ppgController = StreamController<PpgPacket>.broadcast();
+  final _gapController = StreamController<PacketGap>.broadcast();
+
+  bool _isDisposed = false;
+  bool _notificationsActive = false;
+  int? _lastSeq;
 
   BluetoothDevice? get connectedDevice => _connectedDevice;
 
-  Stream<int> get heartRateStream => _heartRateController.stream;
-  Stream<int> get batteryLevelStream => _batteryLevelController.stream;
+  /// Parsed PPG packets from notifications.
+  Stream<PpgPacket> get ppgStream => _ppgController.stream;
+
+  /// Emits whenever a sequence gap is detected.
+  Stream<PacketGap> get gapStream => _gapController.stream;
 
   // ── Adapter State ──────────────────────────────────────────────
 
@@ -26,6 +41,7 @@ class BluetoothService {
 
   Future<bool> get isBluetoothOn async {
     final state = await FlutterBluePlus.adapterState.first;
+    debugPrint('BLE: adapter state = $state');
     return state == BluetoothAdapterState.on;
   }
 
@@ -36,14 +52,18 @@ class BluetoothService {
   bool get isScanning => FlutterBluePlus.isScanningNow;
 
   Future<void> startScan() async {
+    debugPrint('BLE: starting scan (timeout=${BleConstants.scanTimeout.inSeconds}s)');
+
     await FlutterBluePlus.startScan(
-      withServices: [BleConstants.serviceUuid],
       timeout: BleConstants.scanTimeout,
       androidUsesFineLocation: true,
     );
+
+    debugPrint('BLE: scan completed');
   }
 
   Future<void> stopScan() async {
+    debugPrint('BLE: stopping scan');
     await FlutterBluePlus.stopScan();
   }
 
@@ -59,14 +79,21 @@ class BluetoothService {
   }
 
   Future<void> connect(BluetoothDevice device) async {
+    debugPrint('BLE: connecting to ${device.platformName} '
+        '(${device.remoteId})...');
+
     await device.connect(
       timeout: BleConstants.connectionTimeout,
       autoConnect: false,
     );
     _connectedDevice = device;
+    _lastSeq = null;
+
+    debugPrint('BLE: connected to ${device.platformName}');
 
     _connectionSub?.cancel();
     _connectionSub = device.connectionState.listen((state) {
+      debugPrint('BLE: connection state changed → $state');
       if (state == BluetoothConnectionState.disconnected) {
         _onDisconnected();
       }
@@ -76,96 +103,173 @@ class BluetoothService {
   }
 
   Future<void> disconnect() async {
+    debugPrint('BLE: disconnecting...');
+    _notifySub?.cancel();
+    _notifySub = null;
     _connectionSub?.cancel();
     _connectionSub = null;
 
     if (_connectedDevice != null) {
       try {
         await _connectedDevice!.disconnect();
-      } catch (_) {
-        // Device may already be disconnected
-      }
+      } catch (_) {}
     }
     _onDisconnected();
+    debugPrint('BLE: disconnected');
   }
 
-  // ── Characteristic Discovery & Subscription ────────────────────
+  // ── Service Discovery & Notification Subscription ──────────────
 
   Future<void> _discoverAndSubscribe(BluetoothDevice device) async {
-    final services = await device.discoverServices();
+    _notifySub?.cancel();
+    _notifySub = null;
 
-    bool found = false;
+    debugPrint('BLE: discovering services...');
+    final services = await device.discoverServices();
+    debugPrint('BLE: found ${services.length} services');
+
+    for (final service in services) {
+      debugPrint('  service: ${service.uuid} '
+          '(${service.characteristics.length} characteristics)');
+      for (final ch in service.characteristics) {
+        debugPrint('    char: ${ch.uuid} '
+            'props: ${ch.properties}');
+      }
+    }
+
+    BluetoothCharacteristic? dataCh;
+
     for (final service in services) {
       if (service.uuid == BleConstants.serviceUuid) {
-        found = true;
-        for (final char in service.characteristics) {
-          _characteristics[char.uuid.toString()] = char;
+        debugPrint('BLE: found PPG service ${service.uuid}');
+        for (final ch in service.characteristics) {
+          if (ch.uuid == BleConstants.dataCharUuid) {
+            dataCh = ch;
+            debugPrint('BLE: found PPG data characteristic ${ch.uuid}');
+            break;
+          }
         }
         break;
       }
     }
 
-    if (!found) {
+    if (dataCh == null) {
+      debugPrint('BLE: ERROR — PPG data characteristic not found!');
+      debugPrint('  expected service:  ${BleConstants.serviceUuid}');
+      debugPrint('  expected char:     ${BleConstants.dataCharUuid}');
       throw Exception(
-          'ESP32 service not found. Ensure firmware advertises ${BleConstants.serviceUuid}');
+        'PPG data characteristic ${BleConstants.dataCharUuid} not found '
+        'under service ${BleConstants.serviceUuid}. '
+        'Check that ESP32 firmware matches the interface spec.',
+      );
     }
 
-    await _subscribeToHeartRate();
-    await _subscribeToBattery();
+    _dataCh = dataCh;
+
+    debugPrint('BLE: enabling notifications on ${dataCh.uuid}...');
+    await dataCh.setNotifyValue(true);
+    _notificationsActive = true;
+    debugPrint('BLE: notifications enabled — streaming PPG data');
+
+    _notifySub = dataCh.onValueReceived.listen(_onNotification);
   }
 
-  Future<void> _subscribeToHeartRate() async {
-    final char =
-        _characteristics[BleConstants.heartRateCharUuid.toString()];
-    if (char == null) {
-      debugPrint('Heart rate characteristic not found');
+  // ── Pause / Resume Notifications ─────────────────────────────
+
+  bool get isNotifying => _notificationsActive;
+
+  Future<void> pauseNotifications() async {
+    final ch = _dataCh;
+    if (ch == null || !_notificationsActive) return;
+
+    debugPrint('BLE: pausing notifications...');
+    _notifySub?.cancel();
+    _notifySub = null;
+    await ch.setNotifyValue(false);
+    _notificationsActive = false;
+    debugPrint('BLE: notifications paused');
+  }
+
+  Future<void> resumeNotifications() async {
+    final ch = _dataCh;
+    if (ch == null || _notificationsActive) return;
+
+    debugPrint('BLE: resuming notifications...');
+    await ch.setNotifyValue(true);
+    _notificationsActive = true;
+    _notifySub = ch.onValueReceived.listen(_onNotification);
+    debugPrint('BLE: notifications resumed');
+  }
+
+  void _onNotification(List<int> value) {
+    if (_isDisposed) return;
+
+    final packet = PpgPacket.tryParse(value);
+    if (packet == null) {
+      debugPrint('BLE: malformed PPG packet (${value.length} bytes)');
       return;
     }
 
-    await char.setNotifyValue(true);
-    char.onValueReceived.listen((value) {
-      if (value.isNotEmpty) {
-        _heartRateController.add(value[0]);
+    // Sequence-gap detection (spec section 6).
+    // Note: uint32 wraparound (~4 billion packets) is silently tolerated
+    // via the `missed > 0` guard; practically unreachable.
+    if (_lastSeq != null) {
+      final expected = _lastSeq! + 1;
+      if (packet.packetSeq != expected) {
+        final missed = packet.packetSeq - expected;
+        if (missed > 0) {
+          _gapController.add(PacketGap(
+            expectedSeq: expected,
+            receivedSeq: packet.packetSeq,
+            missedPackets: missed,
+          ));
+          debugPrint(
+            'BLE: packet gap — expected seq $expected, '
+            'got ${packet.packetSeq} ($missed missed)',
+          );
+        }
       }
-    });
-  }
-
-  Future<void> _subscribeToBattery() async {
-    final char =
-        _characteristics[BleConstants.batteryLevelCharUuid.toString()];
-    if (char == null) {
-      debugPrint('Battery level characteristic not found');
-      return;
     }
+    _lastSeq = packet.packetSeq;
 
-    // Read initial value
-    try {
-      final initial = await char.read();
-      if (initial.isNotEmpty) {
-        _batteryLevelController.add(initial[0]);
-      }
-    } catch (_) {
-      // Non-critical: we'll get updates via notify
-    }
-
-    await char.setNotifyValue(true);
-    char.onValueReceived.listen((value) {
-      if (value.isNotEmpty) {
-        _batteryLevelController.add(value[0]);
-      }
-    });
+    _ppgController.add(packet);
   }
 
   // ── Cleanup ────────────────────────────────────────────────────
 
   void _onDisconnected() {
+    _notifySub?.cancel();
+    _notifySub = null;
+    _dataCh = null;
+    _notificationsActive = false;
     _connectedDevice = null;
-    _characteristics.clear();
+    _lastSeq = null;
+    debugPrint('BLE: device disconnected — state reset');
   }
 
   void dispose() {
+    _isDisposed = true;
+    _notifySub?.cancel();
     _connectionSub?.cancel();
-    _heartRateController.close();
-    _batteryLevelController.close();
+    _ppgController.close();
+    _gapController.close();
   }
+}
+
+/// Describes a gap in the packet sequence.
+class PacketGap {
+  final int expectedSeq;
+  final int receivedSeq;
+  final int missedPackets;
+
+  const PacketGap({
+    required this.expectedSeq,
+    required this.receivedSeq,
+    required this.missedPackets,
+  });
+
+  @override
+  String toString() =>
+      'PacketGap(expected=$expectedSeq, received=$receivedSeq, '
+      'missed=$missedPackets)';
 }
