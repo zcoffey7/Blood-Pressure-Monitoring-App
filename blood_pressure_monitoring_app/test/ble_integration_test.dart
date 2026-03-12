@@ -149,11 +149,11 @@ void main() {
     });
 
     test('returns null when sample count exceeds max', () {
-      final header = Uint8List(6);
-      final view = ByteData.sublistView(header);
+      final packet = Uint8List(6 + 51 * 4);
+      final view = ByteData.sublistView(packet);
       view.setUint32(0, 0, Endian.little);
-      view.setUint16(4, 51, Endian.little); // exceeds maxSamplesPerPacket
-      expect(PpgPacket.tryParse(header), isNull);
+      view.setUint16(4, 51, Endian.little); // exceeds maxSamplesPerPacket (50)
+      expect(PpgPacket.tryParse(packet), isNull);
     });
   });
 

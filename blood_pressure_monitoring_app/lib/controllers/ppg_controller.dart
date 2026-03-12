@@ -17,6 +17,8 @@ class PpgController extends ChangeNotifier {
   static const int maxBufferSize = 1500;
   static const int inlineWindowSize = 300;
 
+  static const _uiInterval = Duration(milliseconds: 16); // ~60 Hz
+
   final _sampleBuffer = Queue<double>();
   int _packetCount = 0;
   int _sampleCount = 0;
@@ -24,12 +26,20 @@ class PpgController extends ChangeNotifier {
   int? _latestValue;
   bool _isPaused = false;
   bool _isDisposed = false;
+  bool _dirty = false;
+  Timer? _uiTimer;
 
   StreamSubscription<PpgPacket>? _ppgSub;
   StreamSubscription<PacketGap>? _gapSub;
 
   PpgController(this._repository) {
     _startListening();
+    _uiTimer = Timer.periodic(_uiInterval, (_) {
+      if (_dirty && !_isDisposed) {
+        _dirty = false;
+        super.notifyListeners();
+      }
+    });
   }
 
   // ── Getters ──────────────────────────────────────────────────────
@@ -55,13 +65,13 @@ class PpgController extends ChangeNotifier {
 
   Future<void> pause() async {
     _isPaused = true;
-    notifyListeners();
+    _notifyNow();
     await _repository.pauseNotifications();
   }
 
   Future<void> resume() async {
     _isPaused = false;
-    notifyListeners();
+    _notifyNow();
     await _repository.resumeNotifications();
   }
 
@@ -73,7 +83,7 @@ class PpgController extends ChangeNotifier {
     _sampleCount = 0;
     _gapCount = 0;
     _latestValue = null;
-    notifyListeners();
+    _notifyNow();
   }
 
   // ── Internal ─────────────────────────────────────────────────────
@@ -100,23 +110,26 @@ class PpgController extends ChangeNotifier {
       _latestValue = packet.samples.last;
     }
 
-    notifyListeners();
+    _dirty = true;
   }
 
   void _onGap(PacketGap gap) {
     if (_isDisposed) return;
     _gapCount += gap.missedPackets;
-    notifyListeners();
+    _dirty = true;
   }
 
-  @override
-  void notifyListeners() {
-    if (!_isDisposed) super.notifyListeners();
+  void _notifyNow() {
+    if (!_isDisposed) {
+      _dirty = false;
+      super.notifyListeners();
+    }
   }
 
   @override
   void dispose() {
     _isDisposed = true;
+    _uiTimer?.cancel();
     _ppgSub?.cancel();
     _gapSub?.cancel();
     super.dispose();

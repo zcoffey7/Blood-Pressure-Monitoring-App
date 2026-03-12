@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:provider/provider.dart';
@@ -30,12 +31,13 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
   }
 
   Future<void> _startScan() async {
-    debugPrint('SCAN: checking adapter state...');
     final bluetoothOn = await FlutterBluePlus.adapterState.first;
-    debugPrint('SCAN: adapter state = $bluetoothOn');
+
+    if (kDebugMode) {
+      debugPrint('SCAN: adapter state = $bluetoothOn');
+    }
 
     if (bluetoothOn != BluetoothAdapterState.on) {
-      debugPrint('SCAN: Bluetooth is OFF — aborting scan');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -48,23 +50,22 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
 
     _scanSub?.cancel();
     _scanSub = _controller.scanResults.listen((results) {
-      debugPrint('SCAN: received ${results.length} result(s)');
-      for (final r in results) {
-        debugPrint('  → "${r.device.platformName}" '
-            '(${r.device.remoteId}) rssi=${r.rssi} '
-            'services=${r.advertisementData.serviceUuids}');
+      if (kDebugMode) {
+        debugPrint('SCAN: received ${results.length} result(s)');
+        for (final r in results) {
+          debugPrint('  → "${r.device.platformName}" '
+              '(${r.device.remoteId}) rssi=${r.rssi} '
+              'services=${r.advertisementData.serviceUuids}');
+        }
       }
       if (mounted) setState(() => _results = results);
     });
 
-    debugPrint('SCAN: starting scan...');
     await _controller.startScan();
-    debugPrint('SCAN: scan finished — ${_results.length} result(s) total');
     if (!mounted) return;
 
     final error = _controller.error;
     if (error != null && error.isNotEmpty) {
-      debugPrint('SCAN: error — $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

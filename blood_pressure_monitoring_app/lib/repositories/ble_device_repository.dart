@@ -16,7 +16,6 @@ class BleDeviceRepository implements DeviceRepository {
   final BluetoothService _bleService;
   final _connectionController = StreamController<DeviceConnection>.broadcast();
 
-  StreamSubscription<PpgPacket>? _ppgSub;
   StreamSubscription<BluetoothConnectionState>? _stateSub;
 
   BluetoothDevice? _targetDevice;
@@ -104,10 +103,6 @@ class BleDeviceRepository implements DeviceRepository {
   void _listenToStreams() {
     _cancelSubscriptions();
 
-    _ppgSub = _bleService.ppgStream.listen((_) {
-      _emitStatus();
-    });
-
     _stateSub = _bleService.connectionState.listen((state) {
       if (state == BluetoothConnectionState.disconnected) {
         _emitStatus();
@@ -126,7 +121,6 @@ class BleDeviceRepository implements DeviceRepository {
   }
 
   void _cancelSubscriptions() {
-    _ppgSub?.cancel();
     _stateSub?.cancel();
   }
 

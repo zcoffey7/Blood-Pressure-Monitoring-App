@@ -186,10 +186,13 @@ class _FullScreenChart extends StatelessWidget {
 /// Shared chart widget used by both inline and full-screen views.
 class PpgChart extends StatelessWidget {
   final List<double> samples;
-  const PpgChart({super.key, required this.samples});
+  const PpgChart({super.key, required this.samples})
+      : assert(samples.length > 0, 'PpgChart requires at least one sample');
 
   @override
   Widget build(BuildContext context) {
+    if (samples.isEmpty) return const SizedBox.shrink();
+
     final spots = <FlSpot>[];
     for (int i = 0; i < samples.length; i++) {
       spots.add(FlSpot(i.toDouble(), samples[i]));

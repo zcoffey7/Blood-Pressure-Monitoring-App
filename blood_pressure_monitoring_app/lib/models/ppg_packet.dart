@@ -27,10 +27,11 @@ class PpgPacket {
     final packetSeq = view.getUint32(0, Endian.little);
     final sampleCount = view.getUint16(4, Endian.little);
 
+    if (sampleCount > BleConstants.maxSamplesPerPacket) return null;
+
     final expectedLength =
         BleConstants.packetHeaderBytes + (BleConstants.sampleBytes * sampleCount);
     if (bytes.length != expectedLength) return null;
-    if (sampleCount > BleConstants.maxSamplesPerPacket) return null;
 
     final samples = List<int>.generate(sampleCount, (i) {
       final offset = BleConstants.packetHeaderBytes + (i * BleConstants.sampleBytes);
