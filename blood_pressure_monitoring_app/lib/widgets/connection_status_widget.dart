@@ -39,8 +39,6 @@ class ConnectionStatusWidget extends StatelessWidget {
                 style: AppTextStyles.connectionStatus
                     .copyWith(color: Theme.of(context).colorScheme.onSurface),
               ),
-              const Spacer(),
-              _buildBatteryIndicator(connection),
             ],
           ),
         );
@@ -87,30 +85,5 @@ class ConnectionStatusWidget extends StatelessWidget {
         break;
     }
     return Icon(icon, color: color, size: 24);
-  }
-
-  Widget _buildBatteryIndicator(DeviceConnection connection) {
-    Color batteryColor;
-    switch (connection.batteryStatus) {
-      case BatteryStatus.high:
-        batteryColor = AppColors.batteryHigh;
-        break;
-      case BatteryStatus.medium:
-        batteryColor = AppColors.batteryMedium;
-        break;
-      case BatteryStatus.low:
-        batteryColor = AppColors.batteryLow;
-        break;
-    }
-
-    return Row(
-      children: [
-        Icon(Icons.battery_std, color: batteryColor, size: 24),
-        const SizedBox(width: 4),
-        Text('${connection.batteryLevel}%',
-            style: AppTextStyles.connectionStatus
-                .copyWith(color: batteryColor)),
-      ],
-    );
   }
 }

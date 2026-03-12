@@ -30,8 +30,12 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
   }
 
   Future<void> _startScan() async {
+    debugPrint('SCAN: checking adapter state...');
     final bluetoothOn = await FlutterBluePlus.adapterState.first;
+    debugPrint('SCAN: adapter state = $bluetoothOn');
+
     if (bluetoothOn != BluetoothAdapterState.on) {
+      debugPrint('SCAN: Bluetooth is OFF — aborting scan');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -44,14 +48,23 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
 
     _scanSub?.cancel();
     _scanSub = _controller.scanResults.listen((results) {
+      debugPrint('SCAN: received ${results.length} result(s)');
+      for (final r in results) {
+        debugPrint('  → "${r.device.platformName}" '
+            '(${r.device.remoteId}) rssi=${r.rssi} '
+            'services=${r.advertisementData.serviceUuids}');
+      }
       if (mounted) setState(() => _results = results);
     });
 
+    debugPrint('SCAN: starting scan...');
     await _controller.startScan();
+    debugPrint('SCAN: scan finished — ${_results.length} result(s) total');
     if (!mounted) return;
 
     final error = _controller.error;
     if (error != null && error.isNotEmpty) {
+      debugPrint('SCAN: error — $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -170,7 +183,7 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
                 const SizedBox(height: 8),
                 Text(
                   controller.isScanning
-                      ? 'Make sure your BP Monitor is powered on and nearby.'
+                      ? 'Make sure your Sensor-Board is powered on and nearby.'
                       : 'Tap the refresh button to scan again.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMedium

@@ -22,9 +22,6 @@ class AppColors {
   // ── Connection Status (shared) ──────────────────────────────
   static const Color connected = Color(0xFF22C55E);
   static const Color disconnected = Color(0xFF9CA3AF);
-  static const Color batteryHigh = Color(0xFF22C55E);
-  static const Color batteryMedium = Color(0xFFF59E0B);
-  static const Color batteryLow = Color(0xFFEF4444);
 
   // ── Light Theme ─────────────────────────────────────────────
   static const Color lightBackground = Color(0xFFF8FAFC);

@@ -2,27 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../controllers/blood_pressure_controller.dart';
-import '../models/blood_pressure_reading.dart';
-import '../utils/blood_pressure_status.dart';
+import '../controllers/ppg_controller.dart';
 
 class CurrentReadingCard extends StatelessWidget {
   const CurrentReadingCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BloodPressureController>(
+    return Consumer<PpgController>(
       builder: (context, controller, child) {
-        final reading = controller.currentReading;
-
-        if (controller.isLoading && reading == null) {
-          return _buildShell(context, child: const Center(child: CircularProgressIndicator()));
-        }
-
-        if (reading == null) {
+        if (!controller.hasData) {
           return _buildShell(context,
               child: Center(
-                child: Text('No data available',
+                child: Text('Waiting for PPG data…',
                     style: AppTextStyles.bodyLarge
                         .copyWith(color: AppColors.textSecondary(context))),
               ));
@@ -35,47 +27,87 @@ class CurrentReadingCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.favorite, color: AppColors.danger, size: 24),
+                  const Icon(Icons.sensors_rounded,
+                      color: AppColors.primary, size: 24),
                   const SizedBox(width: 8),
-                  Text('Current Reading',
-                      style: AppTextStyles.heading3
-                          .copyWith(color: Theme.of(context).colorScheme.onSurface)),
+                  Text('PPG Sensor Data',
+                      style: AppTextStyles.heading3.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  const Spacer(),
+                  if (!controller.isPaused) ...[
+                    Text('LIVE',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.connected,
+                          fontWeight: FontWeight.bold,
+                        )),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.connected,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildBPValue(context,
-                      value: reading.systolic,
-                      label: 'Systolic',
-                      color: AppColors.systolic),
+                  _buildStatColumn(
+                    context,
+                    value: '${controller.latestValue ?? 0}',
+                    label: 'Latest Sample',
+                    color: AppColors.primary,
+                  ),
                   Container(
-                      height: 80,
+                      height: 60,
                       width: 1,
                       color: AppColors.divider(context)),
-                  _buildBPValue(context,
-                      value: reading.diastolic,
-                      label: 'Diastolic',
-                      color: AppColors.diastolic),
+                  _buildStatColumn(
+                    context,
+                    value: '${controller.packetCount}',
+                    label: 'Packets',
+                    color: AppColors.systolic,
+                  ),
+                  Container(
+                      height: 60,
+                      width: 1,
+                      color: AppColors.divider(context)),
+                  _buildStatColumn(
+                    context,
+                    value: '${controller.totalSampleCount}',
+                    label: 'Samples',
+                    color: AppColors.diastolic,
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-              Center(
-                child: Column(
-                  children: [
-                    Text('${reading.heartRate}',
-                        style: AppTextStyles.heartRateValue
-                            .copyWith(color: AppColors.heartRate)),
-                    const SizedBox(height: 4),
-                    Text('Heart Rate (BPM)',
-                        style: AppTextStyles.bpLabel
-                            .copyWith(color: AppColors.textSecondary(context))),
-                  ],
+              if (controller.gapCount > 0) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded,
+                          color: AppColors.warning, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${controller.gapCount} packet(s) dropped',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.warning),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Center(child: _buildStatusBadge(reading.status)),
+              ],
             ],
           ),
         );
@@ -102,56 +134,24 @@ class CurrentReadingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBPValue(BuildContext context,
-      {required int value, required String label, required Color color}) {
+  Widget _buildStatColumn(
+    BuildContext context, {
+    required String value,
+    required String label,
+    required Color color,
+  }) {
     return Column(
       children: [
-        Text('$value', style: AppTextStyles.bpValue.copyWith(color: color)),
+        Text(value,
+            style: AppTextStyles.heading3.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            )),
         const SizedBox(height: 4),
         Text(label,
-            style: AppTextStyles.bpLabel
+            style: AppTextStyles.bodySmall
                 .copyWith(color: AppColors.textSecondary(context))),
       ],
-    );
-  }
-
-  Widget _buildStatusBadge(BloodPressureStatus status) {
-    Color backgroundColor;
-    TextStyle textStyle;
-
-    switch (status) {
-      case BloodPressureStatus.low:
-        backgroundColor = AppColors.warning.withValues(alpha: 0.1);
-        textStyle = AppTextStyles.statusWarning;
-        break;
-      case BloodPressureStatus.normal:
-        backgroundColor = AppColors.normal.withValues(alpha: 0.1);
-        textStyle = AppTextStyles.statusNormal;
-        break;
-      case BloodPressureStatus.elevated:
-        backgroundColor = AppColors.warning.withValues(alpha: 0.1);
-        textStyle = AppTextStyles.statusWarning;
-        break;
-      case BloodPressureStatus.high:
-        backgroundColor = AppColors.danger.withValues(alpha: 0.1);
-        textStyle = AppTextStyles.statusDanger;
-        break;
-      case BloodPressureStatus.critical:
-        backgroundColor = AppColors.danger.withValues(alpha: 0.2);
-        textStyle = AppTextStyles.statusDanger;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Text(
-        BloodPressureStatusUtil.getSimpleStatus(status),
-        style: textStyle,
-      ),
     );
   }
 }

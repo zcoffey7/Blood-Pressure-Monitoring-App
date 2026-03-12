@@ -3,20 +3,18 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
-import '../controllers/blood_pressure_controller.dart';
-import '../models/blood_pressure_reading.dart';
-import 'package:intl/intl.dart';
+import '../controllers/ppg_controller.dart';
 
 class LiveTrendChart extends StatelessWidget {
   const LiveTrendChart({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BloodPressureController>(
+    return Consumer<PpgController>(
       builder: (context, controller, child) {
-        final readings = controller.historicalReadings;
+        final samples = controller.recentSamples;
 
-        if (readings.isEmpty) return _buildNoDataState(context);
+        if (samples.isEmpty) return _buildNoDataState(context);
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -35,13 +33,23 @@ class LiveTrendChart extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Live Trend',
-                  style: AppTextStyles.heading3
-                      .copyWith(color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text('PPG Waveform',
+                      style: AppTextStyles.heading3.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface)),
+                  const Spacer(),
+                  Text('${controller.sampleBufferLength} pts',
+                      style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary(context))),
+                  const SizedBox(width: 8),
+                  _ExpandButton(controller: controller),
+                ],
+              ),
+              const SizedBox(height: 12),
               _buildLegend(context),
-              const SizedBox(height: 16),
-              Expanded(child: _buildChart(context, readings)),
+              const SizedBox(height: 12),
+              Expanded(child: PpgChart(samples: samples)),
             ],
           ),
         );
@@ -53,148 +61,19 @@ class LiveTrendChart extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildLegendItem(context, 'Systolic', AppColors.systolic),
-        const SizedBox(width: 24),
-        _buildLegendItem(context, 'Diastolic', AppColors.diastolic),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(BuildContext context, String label, Color color) {
-    return Row(
-      children: [
         Container(
           width: 20,
           height: 4,
           decoration: BoxDecoration(
-              color: color, borderRadius: BorderRadius.circular(2)),
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(label,
+        Text('Raw PPG Signal',
             style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary(context))),
       ],
-    );
-  }
-
-  Widget _buildChart(BuildContext context, List<BloodPressureReading> readings) {
-    final systolicSpots = <FlSpot>[];
-    final diastolicSpots = <FlSpot>[];
-
-    for (int i = 0; i < readings.length; i++) {
-      systolicSpots.add(FlSpot(i.toDouble(), readings[i].systolic.toDouble()));
-      diastolicSpots
-          .add(FlSpot(i.toDouble(), readings[i].diastolic.toDouble()));
-    }
-
-    final allValues = [
-      ...readings.map((r) => r.systolic),
-      ...readings.map((r) => r.diastolic),
-    ];
-    final minY = (allValues.reduce((a, b) => a < b ? a : b) - 10).toDouble();
-    final maxY = (allValues.reduce((a, b) => a > b ? a : b) + 10).toDouble();
-    final dividerColor = AppColors.divider(context);
-    final labelColor = AppColors.textSecondary(context);
-
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: true,
-          horizontalInterval: 10,
-          verticalInterval: readings.length > 1 ? readings.length / 6 : 1,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: dividerColor, strokeWidth: 1),
-          getDrawingVerticalLine: (_) =>
-              FlLine(color: dividerColor, strokeWidth: 1),
-        ),
-        titlesData: FlTitlesData(
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: readings.length > 1 ? readings.length / 3 : 1,
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() >= 0 && value.toInt() < readings.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      DateFormat('HH:mm')
-                          .format(readings[value.toInt()].timestamp),
-                      style: AppTextStyles.bodySmall
-                          .copyWith(fontSize: 12, color: labelColor),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 45,
-              interval: 20,
-              getTitlesWidget: (value, meta) => Text(
-                value.toInt().toString(),
-                style: AppTextStyles.bodySmall
-                    .copyWith(fontSize: 12, color: labelColor),
-              ),
-            ),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(color: dividerColor, width: 1),
-        ),
-        minY: minY,
-        maxY: maxY,
-        minX: 0,
-        maxX: (readings.length - 1).toDouble(),
-        lineBarsData: [
-          _line(systolicSpots, AppColors.systolic),
-          _line(diastolicSpots, AppColors.diastolic),
-        ],
-        lineTouchData: LineTouchData(
-          enabled: true,
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (spots) => spots
-                .map((s) => LineTooltipItem(
-                      '${s.y.toInt()}',
-                      const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
-                    ))
-                .toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  LineChartBarData _line(List<FlSpot> spots, Color color) {
-    return LineChartBarData(
-      spots: spots,
-      isCurved: true,
-      color: color,
-      barWidth: 3,
-      isStrokeCapRound: true,
-      dotData: FlDotData(
-        show: true,
-        getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
-          radius: 4,
-          color: color,
-          strokeWidth: 2,
-          strokeColor: Colors.white,
-        ),
-      ),
-      belowBarData: BarAreaData(show: false),
     );
   }
 
@@ -210,16 +89,165 @@ class LiveTrendChart extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.show_chart,
-                size: 64,
-                color: AppColors.textHint(context)),
+            Icon(Icons.sensors_off,
+                size: 64, color: AppColors.textHint(context)),
             const SizedBox(height: 16),
-            Text('No trend data available yet',
+            Text('No PPG data yet',
                 style: AppTextStyles.bodyLarge
                     .copyWith(color: AppColors.textSecondary(context)),
                 textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text('Connect to the sensor to see live data',
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textHint(context)),
+                textAlign: TextAlign.center),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ExpandButton extends StatelessWidget {
+  final PpgController controller;
+  const _ExpandButton({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.open_in_full_rounded, size: 20),
+      tooltip: 'Full-screen view',
+      color: AppColors.textSecondary(context),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: controller,
+              child: const _FullScreenChart(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FullScreenChart extends StatelessWidget {
+  const _FullScreenChart();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('PPG Waveform'),
+        actions: [
+          Consumer<PpgController>(
+            builder: (context, controller, _) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text(
+                    '${controller.sampleBufferLength} samples',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+          child: Consumer<PpgController>(
+            builder: (context, controller, _) {
+              final samples = controller.samples;
+              if (samples.isEmpty) {
+                return Center(
+                  child: Text('No data',
+                      style: AppTextStyles.bodyLarge
+                          .copyWith(color: AppColors.textSecondary(context))),
+                );
+              }
+              return PpgChart(samples: samples);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared chart widget used by both inline and full-screen views.
+class PpgChart extends StatelessWidget {
+  final List<double> samples;
+  const PpgChart({super.key, required this.samples});
+
+  @override
+  Widget build(BuildContext context) {
+    final spots = <FlSpot>[];
+    for (int i = 0; i < samples.length; i++) {
+      spots.add(FlSpot(i.toDouble(), samples[i]));
+    }
+
+    double minY = samples.first;
+    double maxY = samples.first;
+    for (final v in samples) {
+      if (v < minY) minY = v;
+      if (v > maxY) maxY = v;
+    }
+    final range = maxY - minY;
+    final padding = range > 0 ? range * 0.1 : 100;
+    minY -= padding;
+    maxY += padding;
+
+    final dividerColor = AppColors.divider(context);
+
+    return LineChart(
+      LineChartData(
+        clipData: const FlClipData.all(),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: range > 0 ? range / 4 : 100,
+          getDrawingHorizontalLine: (_) =>
+              FlLine(color: dividerColor, strokeWidth: 1),
+        ),
+        titlesData: const FlTitlesData(
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: dividerColor, width: 1),
+        ),
+        minY: minY,
+        maxY: maxY,
+        minX: 0,
+        maxX: (samples.length - 1).toDouble(),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            curveSmoothness: 0.2,
+            color: AppColors.primary,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppColors.primary.withValues(alpha: 0.08),
+            ),
+          ),
+        ],
+        lineTouchData: const LineTouchData(enabled: false),
       ),
     );
   }

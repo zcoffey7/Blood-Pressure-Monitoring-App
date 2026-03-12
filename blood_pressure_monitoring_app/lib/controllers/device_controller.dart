@@ -31,7 +31,6 @@ class DeviceController extends ChangeNotifier {
   bool get isSyncing => _isSyncing;
   String? get error => _error;
   bool get isConnected => _connection?.isConnected ?? false;
-  int get batteryLevel => _connection?.batteryLevel ?? 0;
   int? get heartRate => _connection?.heartRate;
 
   /// Whether the underlying repository supports BLE scanning.

@@ -11,6 +11,7 @@ import 'views/auth/login_screen.dart';
 import 'views/questionnaire/questionnaire_screen.dart';
 import 'controllers/blood_pressure_controller.dart';
 import 'controllers/device_controller.dart';
+import 'controllers/ppg_controller.dart';
 import 'controllers/questionnaire_controller.dart';
 import 'controllers/alert_controller.dart';
 import 'controllers/auth_controller.dart';
@@ -312,6 +313,8 @@ class _AuthenticatedProvidersState extends State<_AuthenticatedProviders> {
             create: (_) => BloodPressureController(_bpRepo)),
         ChangeNotifierProvider(
             create: (_) => DeviceController(_deviceRepo)),
+        ChangeNotifierProvider(
+            create: (_) => PpgController(_deviceRepo)),
         ChangeNotifierProvider(
             create: (_) => QuestionnaireController(_questionnaireRepo,
                 userId: widget.userId)),
