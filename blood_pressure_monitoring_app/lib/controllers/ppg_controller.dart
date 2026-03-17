@@ -3,14 +3,19 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
+import '../constants/ble_constants.dart';
+import '../constants/feature_flags.dart';
+import '../dsp/peak_detector.dart';
+import '../dsp/ppg_signal_processor.dart';
 import '../models/ppg_packet.dart';
 import '../repositories/ble_device_repository.dart';
 import '../services/bluetooth_service.dart';
 
 /// Manages live PPG data from the ESP32 sensor board.
 ///
-/// Maintains a rolling buffer of recent raw samples for chart rendering
-/// and exposes stats (latest value, packet/sample counts, gaps).
+/// When [FeatureFlags.enableDsp] is true, applies real-time bandpass
+/// filtering (0.5–8 Hz Butterworth) and peak detection for heart rate.
+/// Otherwise streams raw samples directly.
 class PpgController extends ChangeNotifier {
   final BleDeviceRepository _repository;
 
@@ -20,6 +25,12 @@ class PpgController extends ChangeNotifier {
   static const _uiInterval = Duration(milliseconds: 16); // ~60 Hz
 
   final _sampleBuffer = Queue<double>();
+  final _signalProcessor = FeatureFlags.enableDsp
+      ? PpgSignalProcessor(sampleRate: BleConstants.ppgSampleRateHz)
+      : null;
+  final _peakDetector = FeatureFlags.enableDsp
+      ? PeakDetector(sampleRate: BleConstants.ppgSampleRateHz)
+      : null;
   int _packetCount = 0;
   int _sampleCount = 0;
   int _gapCount = 0;
@@ -55,6 +66,7 @@ class PpgController extends ChangeNotifier {
 
   int get sampleBufferLength => _sampleBuffer.length;
   int? get latestValue => _latestValue;
+  int? get heartRateBpm => _peakDetector?.heartRateBpm;
   int get packetCount => _packetCount;
   int get totalSampleCount => _sampleCount;
   int get gapCount => _gapCount;
@@ -79,6 +91,8 @@ class PpgController extends ChangeNotifier {
 
   void clear() {
     _sampleBuffer.clear();
+    _signalProcessor?.reset();
+    _peakDetector?.reset();
     _packetCount = 0;
     _sampleCount = 0;
     _gapCount = 0;
@@ -100,7 +114,11 @@ class PpgController extends ChangeNotifier {
     _sampleCount += packet.sampleCount;
 
     for (final sample in packet.samples) {
-      _sampleBuffer.addLast(sample.toDouble());
+      final value = _signalProcessor != null
+          ? _signalProcessor.processSample(sample.toDouble())
+          : sample.toDouble();
+      _peakDetector?.processSample(value);
+      _sampleBuffer.addLast(value);
       if (_sampleBuffer.length > maxBufferSize) {
         _sampleBuffer.removeFirst();
       }

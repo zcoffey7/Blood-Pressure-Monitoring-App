@@ -169,7 +169,7 @@ class _QuestionnaireHistoryScreenState
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(width: 16),
-          Text(title, style: AppTextStyles.bodyLarge),
+          Flexible(child: Text(title, style: AppTextStyles.bodyLarge)),
         ],
       ),
     );
