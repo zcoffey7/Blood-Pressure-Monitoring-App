@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../constants/feature_flags.dart';
 import '../controllers/ppg_controller.dart';
 
 class LiveTrendChart extends StatelessWidget {
@@ -12,7 +13,7 @@ class LiveTrendChart extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<PpgController>(
       builder: (context, controller, child) {
-        final samples = controller.recentSamples;
+        final samples = controller.samples;
 
         if (samples.isEmpty) return _buildNoDataState(context);
 
@@ -35,10 +36,13 @@ class LiveTrendChart extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text('PPG Waveform',
-                      style: AppTextStyles.heading3.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface)),
-                  const Spacer(),
+                  Expanded(
+                    child: Text('PPG Waveform',
+                        style: AppTextStyles.heading3.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(width: 8),
                   Text('${controller.sampleBufferLength} pts',
                       style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary(context))),
@@ -69,7 +73,7 @@ class LiveTrendChart extends StatelessWidget {
               borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text('Raw PPG Signal',
+        Text(FeatureFlags.enableDsp ? 'Filtered PPG Signal' : 'Raw PPG Signal',
             style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary(context))),
@@ -210,6 +214,11 @@ class PpgChart extends StatelessWidget {
     maxY += padding;
 
     final dividerColor = AppColors.divider(context);
+    final axisLabelStyle = AppTextStyles.bodySmall.copyWith(
+      fontSize: 11,
+      color: AppColors.textHint(context),
+    );
+    final interval = range > 0 ? range / 4 : 100.0;
 
     return LineChart(
       LineChartData(
@@ -217,15 +226,37 @@ class PpgChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: range > 0 ? range / 4 : 100,
+          horizontalInterval: interval,
           getDrawingHorizontalLine: (_) =>
               FlLine(color: dividerColor, strokeWidth: 1),
         ),
-        titlesData: const FlTitlesData(
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        titlesData: FlTitlesData(
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 48,
+              interval: interval,
+              getTitlesWidget: (value, meta) {
+                if (value == meta.min || value == meta.max) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Text(
+                    value.toStringAsFixed(0),
+                    style: axisLabelStyle,
+                    textAlign: TextAlign.right,
+                  ),
+                );
+              },
+            ),
+          ),
         ),
         borderData: FlBorderData(
           show: true,

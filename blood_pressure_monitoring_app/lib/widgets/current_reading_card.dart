@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
+import '../constants/feature_flags.dart';
 import '../controllers/ppg_controller.dart';
 
 class CurrentReadingCard extends StatelessWidget {
@@ -22,90 +23,80 @@ class CurrentReadingCard extends StatelessWidget {
 
         return _buildShell(
           context,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.sensors_rounded,
-                      color: AppColors.primary, size: 24),
-                  const SizedBox(width: 8),
-                  Text('PPG Sensor Data',
+              const Icon(
+                FeatureFlags.enableDsp
+                    ? Icons.favorite_rounded
+                    : Icons.sensors_rounded,
+                color: FeatureFlags.enableDsp
+                    ? AppColors.heartRate
+                    : AppColors.primary,
+                size: 36,
+              ),
+              const SizedBox(width: 16),
+              if (FeatureFlags.enableDsp)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        controller.heartRateBpm != null
+                            ? '${controller.heartRateBpm} BPM'
+                            : '-- BPM',
+                        style: AppTextStyles.heading2.copyWith(
+                          color: AppColors.heartRate,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text('Heart Rate',
+                          style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary(context))),
+                    ],
+                  ),
+                )
+              else
+                Expanded(
+                  child: Text('PPG Sensor',
                       style: AppTextStyles.heading3.copyWith(
                           color: Theme.of(context).colorScheme.onSurface)),
-                  const Spacer(),
-                  if (!controller.isPaused) ...[
-                    Text('LIVE',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.connected,
-                          fontWeight: FontWeight.bold,
-                        )),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.connected,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStatColumn(
-                    context,
-                    value: '${controller.latestValue ?? 0}',
-                    label: 'Latest Sample',
-                    color: AppColors.primary,
-                  ),
-                  Container(
-                      height: 60,
-                      width: 1,
-                      color: AppColors.divider(context)),
-                  _buildStatColumn(
-                    context,
-                    value: '${controller.packetCount}',
-                    label: 'Packets',
-                    color: AppColors.systolic,
-                  ),
-                  Container(
-                      height: 60,
-                      width: 1,
-                      color: AppColors.divider(context)),
-                  _buildStatColumn(
-                    context,
-                    value: '${controller.totalSampleCount}',
-                    label: 'Samples',
-                    color: AppColors.diastolic,
-                  ),
-                ],
-              ),
-              if (controller.gapCount > 0) ...[
-                const SizedBox(height: 16),
+                ),
+              if (!controller.isPaused) ...[
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.connected.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: AppColors.warning, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${controller.gapCount} packet(s) dropped',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: AppColors.warning),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.connected,
+                          shape: BoxShape.circle,
+                        ),
                       ),
+                      const SizedBox(width: 6),
+                      Text('LIVE',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.connected,
+                            fontWeight: FontWeight.bold,
+                          )),
                     ],
                   ),
+                ),
+              ],
+              if (controller.gapCount > 0) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: '${controller.gapCount} packet(s) dropped',
+                  child: const Icon(Icons.warning_amber_rounded,
+                      color: AppColors.warning, size: 22),
                 ),
               ],
             ],
@@ -131,27 +122,6 @@ class CurrentReadingCard extends StatelessWidget {
         ],
       ),
       child: child,
-    );
-  }
-
-  Widget _buildStatColumn(
-    BuildContext context, {
-    required String value,
-    required String label,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Text(value,
-            style: AppTextStyles.heading3.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            )),
-        const SizedBox(height: 4),
-        Text(label,
-            style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textSecondary(context))),
-      ],
     );
   }
 }

@@ -556,7 +556,7 @@ class _BPField extends StatelessWidget {
           style: AppTextStyles.heading2,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTextStyles.heading2
+            hintStyle: AppTextStyles.bodyLarge
                 .copyWith(color: AppColors.textHint(context)),
             filled: true,
             fillColor: AppColors.cardBackground(context),

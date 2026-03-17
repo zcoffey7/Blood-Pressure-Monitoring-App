@@ -28,4 +28,7 @@ class BleConstants {
   static const int sampleBytes = 4; // uint32 per sample
   static const int maxSamplesPerPacket = 50;
   static const int ppgBitMask = 0x3FFFF; // lower 18 bits meaningful
+
+  // ── PPG Sampling ────────────────────────────────────────────────
+  static const double ppgSampleRateHz = 100.0;
 }

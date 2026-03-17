@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../constants/ble_constants.dart';
+import '../constants/feature_flags.dart';
 
 /// A single PPG notification packet parsed from the ESP32 binary format.
 ///
@@ -35,7 +36,8 @@ class PpgPacket {
 
     final samples = List<int>.generate(sampleCount, (i) {
       final offset = BleConstants.packetHeaderBytes + (i * BleConstants.sampleBytes);
-      return view.getUint32(offset, Endian.little);
+      final raw = view.getUint32(offset, Endian.little);
+      return FeatureFlags.enableDsp ? raw & BleConstants.ppgBitMask : raw;
     });
 
     return PpgPacket(packetSeq: packetSeq, samples: samples);
