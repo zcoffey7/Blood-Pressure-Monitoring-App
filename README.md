@@ -52,7 +52,7 @@ flutter doctor
 
 1. Clone this repository:
 ```bash
-git clone <repository-url>
+git clone [<repository-url>](https://github.com/zcoffey7/Blood-Pressure-Monitoring-App.git)
 cd Capstone
 ```
 
