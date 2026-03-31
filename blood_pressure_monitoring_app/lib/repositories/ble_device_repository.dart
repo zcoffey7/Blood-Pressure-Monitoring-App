@@ -50,6 +50,12 @@ class BleDeviceRepository implements DeviceRepository {
   /// Resume BLE notifications (restarts data from the sensor).
   Future<void> resumeNotifications() => _bleService.resumeNotifications();
 
+  // ── Pump Control ───────────────────────────────────────────────
+
+  bool get hasPumpControl => _bleService.hasCmdCharacteristic;
+
+  Future<void> sendPumpCommand(bool on) => _bleService.sendPumpCommand(on);
+
   // ── DeviceRepository implementation ────────────────────────────
 
   @override

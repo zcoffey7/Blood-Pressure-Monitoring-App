@@ -16,6 +16,8 @@ class DeviceController extends ChangeNotifier {
   DeviceConnection? _connection;
   bool _isLoading = false;
   bool _isSyncing = false;
+  bool _isPumpOn = false;
+  bool _isPumpLoading = false;
   String? _error;
   bool _isDisposed = false;
   StreamSubscription<DeviceConnection>? _connectionSubscription;
@@ -32,6 +34,11 @@ class DeviceController extends ChangeNotifier {
   String? get error => _error;
   bool get isConnected => _connection?.isConnected ?? false;
   int? get heartRate => _connection?.heartRate;
+  bool get isPumpOn => _isPumpOn;
+  bool get isPumpLoading => _isPumpLoading;
+
+  bool get hasPumpControl =>
+      _repository is BleDeviceRepository && _repository.hasPumpControl;
 
   /// Whether the underlying repository supports BLE scanning.
   bool get canScan => _repository is BleDeviceRepository;
@@ -134,6 +141,7 @@ class DeviceController extends ChangeNotifier {
       notifyListeners();
 
       await _repository.disconnectDevice();
+      _isPumpOn = false;
       _connection = await _repository.getConnectionStatus();
 
       _isLoading = false;
@@ -141,6 +149,48 @@ class DeviceController extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _error = 'Failed to disconnect from device: $e';
+      notifyListeners();
+    }
+  }
+
+  // ── Pump Control ───────────────────────────────────────────────
+
+  Future<void> togglePump() async {
+    if (_repository is! BleDeviceRepository) return;
+    try {
+      _isPumpLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final target = !_isPumpOn;
+      await _repository.sendPumpCommand(target);
+      _isPumpOn = target;
+
+      _isPumpLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isPumpLoading = false;
+      _error = 'Pump command failed: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> setPump(bool on) async {
+    if (_repository is! BleDeviceRepository) return;
+    if (_isPumpOn == on) return;
+    try {
+      _isPumpLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _repository.sendPumpCommand(on);
+      _isPumpOn = on;
+
+      _isPumpLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isPumpLoading = false;
+      _error = 'Pump command failed: $e';
       notifyListeners();
     }
   }

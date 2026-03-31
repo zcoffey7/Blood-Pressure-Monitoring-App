@@ -8,6 +8,7 @@ import '../../widgets/connection_status_widget.dart';
 import '../../widgets/current_reading_card.dart';
 import '../../widgets/live_trend_chart.dart';
 import '../../widgets/action_buttons.dart';
+import '../../widgets/pump_control_widget.dart';
 import '../device/device_scan_screen.dart';
 import '../questionnaire/questionnaire_screen.dart';
 
@@ -41,7 +42,10 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 const CurrentReadingCard(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                const PumpControlWidget(),
+                const SizedBox(height: 16),
 
                 const SizedBox(
                     height: 300,
