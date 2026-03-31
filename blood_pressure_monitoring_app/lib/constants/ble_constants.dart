@@ -6,11 +6,15 @@ class BleConstants {
   BleConstants._();
 
   // ── Service & Characteristic UUIDs ─────────────────────────────
-  static final Guid serviceUuid =
-      Guid('a1f6f5ff-bf33-4d42-9a21-e45dad587e23');
+  static final Guid serviceUuid = Guid('a1f6f5ff-bf33-4d42-9a21-e45dad587e23');
 
-  static final Guid dataCharUuid =
-      Guid('a1f6f5ff-bf33-4d42-9a21-e45dad587e24');
+  static final Guid dataCharUuid = Guid('a1f6f5ff-bf33-4d42-9a21-e45dad587e24');
+
+  static final Guid cmdCharUuid = Guid('a1f6f5ff-bf33-4d42-9a21-e45dad587e25');
+
+  // ── Pump Commands ─────────────────────────────────────────────
+  static const int pumpOff = 0x00;
+  static const int pumpOn = 0x01;
 
   // ── Device Discovery ──────────────────────────────────────────
   static const String deviceName = 'Sensor-Board';

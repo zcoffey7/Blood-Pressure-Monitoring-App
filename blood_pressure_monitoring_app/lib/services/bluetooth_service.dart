@@ -16,6 +16,7 @@ import '../models/ppg_packet.dart';
 class BluetoothService {
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _dataCh;
+  BluetoothCharacteristic? _cmdCh;
   StreamSubscription<BluetoothConnectionState>? _connectionSub;
   StreamSubscription<List<int>>? _notifySub;
 
@@ -138,6 +139,7 @@ class BluetoothService {
     }
 
     BluetoothCharacteristic? dataCh;
+    BluetoothCharacteristic? cmdCh;
 
     for (final service in services) {
       if (service.uuid == BleConstants.serviceUuid) {
@@ -146,7 +148,9 @@ class BluetoothService {
           if (ch.uuid == BleConstants.dataCharUuid) {
             dataCh = ch;
             debugPrint('BLE: found PPG data characteristic ${ch.uuid}');
-            break;
+          } else if (ch.uuid == BleConstants.cmdCharUuid) {
+            cmdCh = ch;
+            debugPrint('BLE: found command characteristic ${ch.uuid}');
           }
         }
         break;
@@ -165,6 +169,12 @@ class BluetoothService {
     }
 
     _dataCh = dataCh;
+    _cmdCh = cmdCh;
+
+    if (cmdCh == null) {
+      debugPrint('BLE: WARNING — command characteristic not found; '
+          'pump control will be unavailable');
+    }
 
     debugPrint('BLE: enabling notifications on ${dataCh.uuid}...');
     await dataCh.setNotifyValue(true);
@@ -235,12 +245,30 @@ class BluetoothService {
     _ppgController.add(packet);
   }
 
+  // ── Pump Command ───────────────────────────────────────────────
+
+  bool get hasCmdCharacteristic => _cmdCh != null;
+
+  Future<void> sendPumpCommand(bool on) async {
+    final ch = _cmdCh;
+    if (ch == null) {
+      throw Exception('Command characteristic not available. '
+          'Ensure the device is connected and firmware supports pump control.');
+    }
+
+    final byte = on ? BleConstants.pumpOn : BleConstants.pumpOff;
+    debugPrint('BLE: sending pump command ${on ? "ON" : "OFF"} (0x${byte.toRadixString(16)})');
+    await ch.write([byte], withoutResponse: true);
+    debugPrint('BLE: pump command sent');
+  }
+
   // ── Cleanup ────────────────────────────────────────────────────
 
   void _onDisconnected() {
     _notifySub?.cancel();
     _notifySub = null;
     _dataCh = null;
+    _cmdCh = null;
     _notificationsActive = false;
     _connectedDevice = null;
     _lastSeq = null;

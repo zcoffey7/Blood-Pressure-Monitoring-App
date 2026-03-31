@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/app_text_styles.dart';
+import '../../constants/ble_constants.dart';
 import '../../controllers/device_controller.dart';
 
 /// Screen for discovering and connecting to an ESP32 BLE device.
@@ -58,7 +59,10 @@ class _DeviceScanScreenState extends State<DeviceScanScreen> {
               'services=${r.advertisementData.serviceUuids}');
         }
       }
-      if (mounted) setState(() => _results = results);
+      final filtered = results
+          .where((r) => r.device.platformName == BleConstants.deviceName)
+          .toList();
+      if (mounted) setState(() => _results = filtered);
     });
 
     await _controller.startScan();
